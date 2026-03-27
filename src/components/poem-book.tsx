@@ -94,7 +94,11 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
       {isOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8"
-          onClick={handleClose}
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) {
+              handleClose();
+            }
+          }}
           role="dialog"
           aria-modal="true"
         >
