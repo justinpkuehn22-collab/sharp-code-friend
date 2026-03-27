@@ -159,17 +159,17 @@ export const Index = () => {
           ))}
 
           {/* Add shelf button */}
-          <div className="flex justify-center pt-10 pb-6">
+          <div className="flex justify-center pt-6 pb-4">
             <button
               onClick={addShelf}
-              className="group w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95"
+              className="group w-7 h-7 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-125 active:scale-95 opacity-40 hover:opacity-80"
               style={{
                 background: "linear-gradient(135deg, hsl(38, 55%, 45%), hsl(38, 50%, 35%))",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.15)",
+                boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
               }}
               aria-label="Add new shelf"
             >
-              <Plus size={22} className="text-white/80 group-hover:text-white transition-colors" />
+              <Plus size={14} className="text-white" />
             </button>
           </div>
         </div>

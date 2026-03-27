@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 import type { Poem } from "@/data/poems";
 import { usePoemStore } from "@/stores/poem-store";
-import { X } from "lucide-react";
+import { X, Trash2 } from "lucide-react";
 
 interface PoemBookProps {
   poem: Poem;
@@ -193,7 +193,14 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
   const [editTitle, setEditTitle] = useState(poem.title);
   const [editContent, setEditContent] = useState(poem.content);
   const contentRef = useRef<HTMLTextAreaElement>(null);
-  const { updatePoem } = usePoemStore();
+  const { updatePoem, deletePoem } = usePoemStore();
+
+  const handleDelete = () => {
+    if (window.confirm(`Remove "${poem.title}" from your shelf?`)) {
+      setIsOpen(false);
+      deletePoem(poem.id);
+    }
+  };
 
   const hasContent = poem.content.trim() !== "";
 
@@ -359,6 +366,15 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
               aria-label="Close poem"
             >
               <X size={16} />
+            </button>
+
+            {/* Delete */}
+            <button
+              onClick={handleDelete}
+              className="absolute -top-4 -left-4 z-20 w-9 h-9 rounded-full flex items-center justify-center shadow-xl transition-all duration-200 hover:scale-110 active:scale-95 bg-destructive text-destructive-foreground"
+              aria-label="Delete poem"
+            >
+              <Trash2 size={14} />
             </button>
 
             {/* Elegant dark paper */}

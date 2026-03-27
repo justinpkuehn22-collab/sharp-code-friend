@@ -57,21 +57,4 @@ export const defaultPoems: Poem[] = [
   createBlankPoem("poem-11", "Untitled"),
   createBlankPoem("poem-12", "Untitled"),
   createBlankPoem("poem-13", "Untitled"),
-
-  // Shelf 3
-  createBlankPoem("poem-14", "Untitled"),
-  createBlankPoem("poem-15", "Untitled"),
-  createBlankPoem("poem-16", "Untitled"),
-  createBlankPoem("poem-17", "Untitled"),
-  createBlankPoem("poem-18", "Untitled"),
-  createBlankPoem("poem-19", "Untitled"),
-  createBlankPoem("poem-20", "Untitled"),
-
-  // Shelf 4
-  createBlankPoem("poem-21", "Untitled"),
-  createBlankPoem("poem-22", "Untitled"),
-  createBlankPoem("poem-23", "Untitled"),
-  createBlankPoem("poem-24", "Untitled"),
-  createBlankPoem("poem-25", "Untitled"),
-  createBlankPoem("poem-26", "Untitled"),
 ];
