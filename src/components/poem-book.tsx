@@ -9,38 +9,14 @@ interface PoemBookProps {
   index: number;
 }
 
-// Deterministic pseudo-random from index for consistent sizing
 const seededRandom = (seed: number) => {
   const x = Math.sin(seed * 9301 + 49297) * 49297;
   return x - Math.floor(x);
 };
 
-// Bookmark colors for completed poems
 const bookmarkColors = [
-  "bg-red-500",
-  "bg-amber-400",
-  "bg-emerald-500",
-  "bg-sky-400",
-  "bg-violet-500",
-  "bg-rose-400",
-  "bg-teal-400",
-  "bg-orange-400",
-  "bg-pink-500",
-  "bg-indigo-400",
-];
-
-// Spine color palettes - rich, varied book colors
-const spineColors = [
-  { bg: "hsl(345, 45%, 30%)", edge: "hsl(345, 40%, 22%)" },   // burgundy
-  { bg: "hsl(152, 35%, 25%)", edge: "hsl(152, 30%, 18%)" },   // forest green
-  { bg: "hsl(220, 40%, 28%)", edge: "hsl(220, 35%, 20%)" },   // navy
-  { bg: "hsl(25, 50%, 25%)", edge: "hsl(25, 45%, 18%)" },     // leather brown
-  { bg: "hsl(280, 30%, 28%)", edge: "hsl(280, 25%, 20%)" },   // plum
-  { bg: "hsl(35, 55%, 30%)", edge: "hsl(35, 50%, 22%)" },     // caramel
-  { bg: "hsl(0, 0%, 22%)", edge: "hsl(0, 0%, 15%)" },         // charcoal
-  { bg: "hsl(200, 35%, 28%)", edge: "hsl(200, 30%, 20%)" },   // steel blue
-  { bg: "hsl(15, 50%, 28%)", edge: "hsl(15, 45%, 20%)" },     // rust
-  { bg: "hsl(45, 40%, 30%)", edge: "hsl(45, 35%, 22%)" },     // olive gold
+  "bg-primary",      // pink
+  "bg-secondary",    // green
 ];
 
 export const PoemBook = ({ poem, index }: PoemBookProps) => {
@@ -80,11 +56,9 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
   }, [editTitle, editContent, isOpen, poem.id, updatePoem]);
 
   const hasContent = poem.content.trim() !== "";
-  const height = 120 + seededRandom(index + 1) * 60; // 120-180px
-  const width = 38 + seededRandom(index + 50) * 20;  // 38-58px
-  const colorIdx = index % spineColors.length;
-  const spine = spineColors[colorIdx];
-  const bookmarkColor = bookmarkColors[index % bookmarkColors.length];
+  const height = 120 + seededRandom(index + 1) * 60;
+  const width = 38 + seededRandom(index + 50) * 18;
+  const bookmarkColor = bookmarkColors[index % 2];
 
   return (
     <>
@@ -93,34 +67,60 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
           e.stopPropagation();
           handleOpen();
         }}
-        className="book-spine group relative flex flex-col items-center justify-end rounded-t-sm rounded-b-md shadow-lg"
+        className={cn(
+          "group relative flex flex-col items-center justify-end",
+          "rounded-t-sm rounded-b-md",
+          "shadow-lg transition-all duration-300 ease-out cursor-pointer",
+          "hover:-translate-y-4 hover:scale-110 hover:z-10 hover:shadow-2xl",
+        )}
         style={{
           height: `${height}px`,
           width: `${width}px`,
-          backgroundColor: spine.bg,
+          backgroundColor: "hsl(28, 12%, 12%)",
         }}
         aria-label={`Open poem: ${poem.title}`}
       >
-        {/* Spine left edge highlight */}
+        {/* Leather spine left edge — subtle lighter strip */}
         <div
           className="absolute left-0 top-0 h-full w-1.5 rounded-tl-sm rounded-bl-md"
-          style={{ backgroundColor: spine.edge }}
+          style={{ backgroundColor: "hsl(28, 10%, 18%)" }}
+        />
+        {/* Right edge — darker */}
+        <div
+          className="absolute right-0 top-0 h-full w-[1px]"
+          style={{ backgroundColor: "hsl(28, 8%, 8%)" }}
         />
 
-        {/* Gold line accents */}
-        <div className="absolute left-2 right-2 top-3 h-px bg-clock-trim/30" />
-        <div className="absolute left-2 right-2 top-5 h-px bg-clock-trim/20" />
-        <div className="absolute left-2 right-2 bottom-6 h-px bg-clock-trim/30" />
-        <div className="absolute left-2 right-2 bottom-8 h-px bg-clock-trim/20" />
+        {/* Embossed horizontal lines — gold foil look */}
+        <div className="absolute left-2 right-2 top-3 h-px bg-clock-trim/25" />
+        <div className="absolute left-3 right-3 top-[18px] h-px bg-clock-trim/15" />
+        <div className="absolute left-2 right-2 bottom-6 h-px bg-clock-trim/25" />
+        <div className="absolute left-3 right-3 bottom-[30px] h-px bg-clock-trim/15" />
 
-        {/* Title on spine — prominent */}
+        {/* Subtle leather texture overlay */}
+        <div
+          className="absolute inset-0 rounded-t-sm rounded-b-md opacity-20 pointer-events-none"
+          style={{
+            backgroundImage: `repeating-linear-gradient(
+              0deg,
+              transparent,
+              transparent 2px,
+              rgba(255,255,255,0.03) 2px,
+              rgba(255,255,255,0.03) 3px
+            )`,
+          }}
+        />
+
+        {/* Title on spine */}
         <span
           className={cn(
             "absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2",
-            "font-display text-[9px] sm:text-[11px] font-bold",
-            "text-white/90 whitespace-nowrap drop-shadow-sm",
+            "font-display text-[9px] sm:text-[10px] font-bold",
+            "text-clock-trim/70 whitespace-nowrap",
             "rotate-180",
-            !hasContent && "italic text-white/40 text-[8px] sm:text-[9px]",
+            "transition-all duration-300",
+            "group-hover:text-clock-trim group-hover:text-[11px] sm:group-hover:text-[13px] group-hover:drop-shadow-[0_0_6px_rgba(200,170,100,0.5)]",
+            !hasContent && "italic text-clock-trim/30 text-[8px]",
           )}
           style={{ writingMode: "vertical-rl" }}
         >
@@ -131,17 +131,17 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
         {hasContent && (
           <div
             className={cn(
-              "absolute -top-3 right-1.5 w-2.5 h-7 rounded-b-sm shadow-sm",
+              "absolute -top-3 right-1.5 w-2.5 h-8 rounded-b-sm shadow-md z-10",
               bookmarkColor,
             )}
             style={{
-              clipPath: "polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%)",
+              clipPath: "polygon(0 0, 100% 0, 100% 100%, 50% 75%, 0 100%)",
             }}
           />
         )}
 
         {/* Hover glow */}
-        <div className="absolute inset-0 rounded-t-sm rounded-b-md bg-white/0 group-hover:bg-white/10 transition-colors duration-300" />
+        <div className="absolute inset-0 rounded-t-sm rounded-b-md bg-white/0 group-hover:bg-white/5 transition-colors duration-300" />
       </button>
 
       {/* Open poem overlay */}

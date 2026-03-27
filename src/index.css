@@ -54,11 +54,12 @@
     --book-paper-line: 34 20% 75%;
 
     /* Shelf tokens */
-    --shelf-wood: 25 35% 22%;
-    --shelf-plank: 25 45% 35%;
-    --shelf-plank-dark: 25 50% 25%;
-    --shelf-highlight: 34 50% 65%;
-    --shelf-bracket: 25 40% 20%;
+    --shelf-wood: 30 18% 18%;
+    --shelf-plank: 30 30% 55%;
+    --shelf-plank-dark: 28 28% 42%;
+    --shelf-plank-face: 32 35% 62%;
+    --shelf-highlight: 36 45% 75%;
+    --shelf-bracket: 28 25% 35%;
 
     /* Clock tokens */
     --clock-wood: 25 40% 30%;
