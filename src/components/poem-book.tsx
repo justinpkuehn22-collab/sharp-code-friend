@@ -415,11 +415,26 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
                       </div>
                     )}
 
-                    {/* Edit hint */}
+                    {/* Signature + edit hint */}
                     {contentTypewriter.done && (
-                      <p className="mt-10 text-center text-xs animate-fade-in" style={{ color: "hsl(34, 20%, 35%)" }}>
-                        tap to edit
-                      </p>
+                      <div className="mt-12 animate-fade-in">
+                        {/* JK Signature */}
+                        <p
+                          className="text-right text-2xl sm:text-3xl"
+                          style={{
+                            fontFamily: "'Playfair Display', serif",
+                            fontStyle: "italic",
+                            color: "hsl(38, 55%, 55%)",
+                            textShadow: "0 0 10px hsl(38, 55%, 50%, 0.15)",
+                            letterSpacing: "0.06em",
+                          }}
+                        >
+                          — JK
+                        </p>
+                        <p className="mt-6 text-center text-xs" style={{ color: "hsl(34, 20%, 35%)" }}>
+                          tap to edit
+                        </p>
+                      </div>
                     )}
                   </div>
                 )}
