@@ -17,12 +17,22 @@ const seededRandom = (seed: number) => {
 
 const bookmarkColors = ["bg-primary", "bg-secondary"];
 
-// Typewriter effect hook — much slower
+// Typewriter effect hook — with skip support
 const useTypewriter = (text: string, speed = 30, active = false) => {
   const [displayed, setDisplayed] = useState("");
   const [done, setDone] = useState(false);
+  const skipRef = useRef(false);
+  const timerRef = useRef<number | null>(null);
+
+  const skip = useCallback(() => {
+    skipRef.current = true;
+    setDisplayed(text);
+    setDone(true);
+    if (timerRef.current) clearTimeout(timerRef.current);
+  }, [text]);
 
   useEffect(() => {
+    skipRef.current = false;
     if (!active) {
       setDisplayed("");
       setDone(false);
@@ -32,25 +42,25 @@ const useTypewriter = (text: string, speed = 30, active = false) => {
     setDone(false);
     let i = 0;
     const tick = () => {
+      if (skipRef.current) return;
       i++;
       setDisplayed(text.slice(0, i));
       if (i >= text.length) {
         setDone(true);
         return;
       }
-      // Pause longer on newlines and punctuation
       const char = text[i - 1];
       let delay = speed;
       if (char === "\n") delay = speed * 6;
       else if (char === "." || char === "—" || char === "…") delay = speed * 4;
       else if (char === ",") delay = speed * 2.5;
-      setTimeout(tick, delay);
+      timerRef.current = window.setTimeout(tick, delay);
     };
-    const initial = setTimeout(tick, speed);
-    return () => clearTimeout(initial);
+    timerRef.current = window.setTimeout(tick, speed);
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [text, speed, active]);
 
-  return { displayed, done };
+  return { displayed, done, skip };
 };
 
 // Rhyme scheme colors — pink & green palette to match bookmarks
