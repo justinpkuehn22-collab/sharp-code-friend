@@ -8,6 +8,7 @@ interface PoemStore {
   shelfSizes: number[];
   updatePoem: (id: string, updates: Partial<Pick<Poem, "title" | "content">>) => void;
   deletePoem: (id: string) => void;
+  deleteShelf: (shelfIdx: number) => void;
   addShelf: () => void;
 }
 
@@ -50,6 +51,18 @@ export const usePoemStore = create<PoemStore>()(
           return {
             poems: newPoems,
             shelfSizes: filteredSizes.length > 0 ? filteredSizes : [0],
+          };
+        }),
+      deleteShelf: (shelfIdx) =>
+        set((state) => {
+          let offset = 0;
+          for (let s = 0; s < shelfIdx; s++) offset += state.shelfSizes[s];
+          const count = state.shelfSizes[shelfIdx];
+          const newPoems = [...state.poems.slice(0, offset), ...state.poems.slice(offset + count)];
+          const newSizes = state.shelfSizes.filter((_, i) => i !== shelfIdx);
+          return {
+            poems: newPoems,
+            shelfSizes: newSizes.length > 0 ? newSizes : [0],
           };
         }),
       addShelf: () =>

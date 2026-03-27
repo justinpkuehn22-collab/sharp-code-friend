@@ -1,10 +1,10 @@
 import { usePoemStore } from "@/stores/poem-store";
 import { PoemBook } from "@/components/poem-book";
 import { GrandfatherClock } from "@/components/grandfather-clock";
-import { Plus } from "lucide-react";
+import { Plus, Minus } from "lucide-react";
 
 export const Index = () => {
-  const { poems, shelfSizes, addShelf } = usePoemStore();
+  const { poems, shelfSizes, addShelf, deleteShelf } = usePoemStore();
 
   const shelves: typeof poems[] = [];
   let offset = 0;
@@ -130,7 +130,7 @@ export const Index = () => {
               </div>
 
               {/* Shelf plank */}
-              <div className="relative">
+              <div className="relative group/shelf">
                 {/* Top surface */}
                 <div
                   className="h-4 relative overflow-hidden"
@@ -143,6 +143,19 @@ export const Index = () => {
                   }}
                 >
                   <div className="absolute inset-x-0 top-0 h-[1px] bg-white/10" />
+
+                  {/* Remove shelf button — appears on hover */}
+                  <button
+                    onClick={() => {
+                      if (window.confirm("Remove this entire shelf and all its books?")) {
+                        deleteShelf(shelfIdx);
+                      }
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-destructive flex items-center justify-center opacity-0 group-hover/shelf:opacity-70 hover:!opacity-100 transition-all duration-200 hover:scale-110 z-10"
+                    aria-label="Remove shelf"
+                  >
+                    <Minus size={10} className="text-destructive-foreground" />
+                  </button>
                 </div>
                 {/* Front face */}
                 <div
