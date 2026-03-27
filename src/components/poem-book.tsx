@@ -49,7 +49,10 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
     <>
       {/* Book on shelf */}
       <button
-        onClick={handleOpen}
+        onClick={(e) => {
+          e.stopPropagation();
+          handleOpen();
+        }}
         className={cn(
           "book-spine group relative flex flex-col items-center justify-end",
           "rounded-t-sm rounded-b-md shadow-md",
@@ -91,7 +94,11 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
       {isOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8"
-          onClick={handleClose}
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) {
+              handleClose();
+            }
+          }}
           role="dialog"
           aria-modal="true"
         >
@@ -104,7 +111,7 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
               "relative z-10 max-w-lg w-full animate-scale-in",
               "flex flex-col",
             )}
-            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
           >
             {/* Paper curl / shadow effect */}
             <div className="absolute -bottom-2 left-4 right-4 h-4 bg-foreground/10 rounded-b-lg blur-md" />
