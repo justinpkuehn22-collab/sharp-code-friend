@@ -46,11 +46,12 @@
     --sidebar-ring: 345 40% 65%;
 
     /* Custom tokens */
-    --book-pink: 345 40% 65%;
-    --book-green: 152 28% 55%;
+    --book-spine: 28 15% 15%;
+    --book-spine-edge: 28 10% 22%;
     --book-tan-dark: 34 30% 78%;
-    --book-pink-light: 345 45% 85%;
-    --book-green-light: 152 30% 85%;
+    --book-paper: 38 40% 94%;
+    --book-paper-edge: 34 25% 82%;
+    --book-paper-line: 34 20% 75%;
   }
 
   .dark {
