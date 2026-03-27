@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { X } from "lucide-react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 import type { Poem } from "@/data/poems";
 import { usePoemStore } from "@/stores/poem-store";
+import { X } from "lucide-react";
 
 interface PoemBookProps {
   poem: Poem;
@@ -15,17 +15,49 @@ const seededRandom = (seed: number) => {
   return x - Math.floor(x);
 };
 
-const bookmarkColors = [
-  "bg-primary",      // pink
-  "bg-secondary",    // green
-];
+const bookmarkColors = ["bg-primary", "bg-secondary"];
+
+// Typewriter effect hook
+const useTypewriter = (text: string, speed = 30, active = false) => {
+  const [displayed, setDisplayed] = useState("");
+  const [done, setDone] = useState(false);
+
+  useEffect(() => {
+    if (!active) {
+      setDisplayed("");
+      setDone(false);
+      return;
+    }
+    setDisplayed("");
+    setDone(false);
+    let i = 0;
+    const interval = setInterval(() => {
+      i++;
+      setDisplayed(text.slice(0, i));
+      if (i >= text.length) {
+        clearInterval(interval);
+        setDone(true);
+      }
+    }, speed);
+    return () => clearInterval(interval);
+  }, [text, speed, active]);
+
+  return { displayed, done };
+};
 
 export const PoemBook = ({ poem, index }: PoemBookProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(poem.title);
   const [editContent, setEditContent] = useState(poem.content);
   const contentRef = useRef<HTMLTextAreaElement>(null);
   const { updatePoem } = usePoemStore();
+
+  const hasContent = poem.content.trim() !== "";
+
+  // Typewriter for title and content on open
+  const titleTypewriter = useTypewriter(poem.title, 60, isOpen && !isEditing && hasContent);
+  const contentTypewriter = useTypewriter(poem.content, 18, isOpen && !isEditing && hasContent && titleTypewriter.done);
 
   const handleSave = useCallback(() => {
     updatePoem(poem.id, { title: editTitle, content: editContent });
@@ -34,19 +66,28 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
   const handleOpen = () => {
     setEditTitle(poem.title);
     setEditContent(poem.content);
+    setIsEditing(false);
     setIsOpen(true);
   };
 
   const handleClose = useCallback(() => {
     handleSave();
     setIsOpen(false);
+    setIsEditing(false);
   }, [handleSave]);
 
+  const handleStartEditing = () => {
+    setIsEditing(true);
+    setTimeout(() => contentRef.current?.focus(), 50);
+  };
+
   useEffect(() => {
-    if (isOpen && contentRef.current) {
-      contentRef.current.focus();
+    if (!isOpen) return;
+    if (!hasContent) {
+      setIsEditing(true);
+      setTimeout(() => contentRef.current?.focus(), 400);
     }
-  }, [isOpen]);
+  }, [isOpen, hasContent]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -56,7 +97,6 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
     return () => clearTimeout(timeout);
   }, [editTitle, editContent, isOpen, poem.id, updatePoem]);
 
-  const hasContent = poem.content.trim() !== "";
   const height = 120 + seededRandom(index + 1) * 60;
   const width = 38 + seededRandom(index + 50) * 18;
   const bookmarkColor = bookmarkColors[index % 2];
@@ -71,8 +111,10 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
         className={cn(
           "group relative flex flex-col items-center justify-end",
           "rounded-t-sm rounded-b-md",
-          "shadow-lg transition-all duration-300 ease-out cursor-pointer",
-          "hover:-translate-y-4 hover:scale-110 hover:z-10 hover:shadow-2xl",
+          "shadow-lg cursor-pointer",
+          "transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]",
+          "hover:-translate-y-6 hover:scale-[1.25] hover:z-20",
+          "hover:shadow-[0_20px_40px_rgba(0,0,0,0.5)]",
         )}
         style={{
           height: `${height}px`,
@@ -81,46 +123,41 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
         }}
         aria-label={`Open poem: ${poem.title}`}
       >
-        {/* Leather spine left edge — subtle lighter strip */}
+        {/* Leather spine left edge */}
         <div
           className="absolute left-0 top-0 h-full w-1.5 rounded-tl-sm rounded-bl-md"
           style={{ backgroundColor: "hsl(28, 10%, 18%)" }}
         />
-        {/* Right edge — darker */}
         <div
           className="absolute right-0 top-0 h-full w-[1px]"
           style={{ backgroundColor: "hsl(28, 8%, 8%)" }}
         />
 
-        {/* Embossed horizontal lines — gold foil look */}
+        {/* Gold foil lines */}
         <div className="absolute left-2 right-2 top-3 h-px bg-clock-trim/25" />
         <div className="absolute left-3 right-3 top-[18px] h-px bg-clock-trim/15" />
         <div className="absolute left-2 right-2 bottom-6 h-px bg-clock-trim/25" />
         <div className="absolute left-3 right-3 bottom-[30px] h-px bg-clock-trim/15" />
 
-        {/* Subtle leather texture overlay */}
+        {/* Leather texture */}
         <div
           className="absolute inset-0 rounded-t-sm rounded-b-md opacity-20 pointer-events-none"
           style={{
-            backgroundImage: `repeating-linear-gradient(
-              0deg,
-              transparent,
-              transparent 2px,
-              rgba(255,255,255,0.03) 2px,
-              rgba(255,255,255,0.03) 3px
-            )`,
+            backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 3px)`,
           }}
         />
 
-        {/* Title on spine */}
+        {/* Title */}
         <span
           className={cn(
             "absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2",
             "font-display text-[9px] sm:text-[11px] font-bold",
             "text-white/90 whitespace-nowrap drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]",
             "rotate-180",
-            "transition-all duration-300",
-            "group-hover:text-white group-hover:text-[11px] sm:group-hover:text-[13px] group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]",
+            "transition-all duration-500",
+            "group-hover:text-white group-hover:text-[12px] sm:group-hover:text-[14px]",
+            "group-hover:drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]",
+            "group-hover:tracking-wider",
             !hasContent && "italic text-white/40 text-[8px]",
           )}
           style={{ writingMode: "vertical-rl" }}
@@ -128,7 +165,7 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
           {poem.title}
         </span>
 
-        {/* Bookmark for completed poems */}
+        {/* Bookmark */}
         {hasContent && (
           <div
             className={cn(
@@ -142,10 +179,10 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
         )}
 
         {/* Hover glow */}
-        <div className="absolute inset-0 rounded-t-sm rounded-b-md bg-white/0 group-hover:bg-white/5 transition-colors duration-300" />
+        <div className="absolute inset-0 rounded-t-sm rounded-b-md bg-white/0 group-hover:bg-white/[0.07] transition-colors duration-500" />
       </button>
 
-      {/* Open poem overlay */}
+      {/* Typewriter-style poem overlay */}
       {isOpen && createPortal(
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8"
@@ -153,54 +190,119 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
           role="dialog"
           aria-modal="true"
         >
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in pointer-events-none" />
+          {/* Dark backdrop */}
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-md animate-fade-in pointer-events-none" />
 
-          <div className="relative z-10 max-w-lg w-full origin-center animate-paper-unfold">
-            <div className="absolute -bottom-2 left-4 right-4 h-4 bg-foreground/10 rounded-b-lg blur-md" />
-
+          {/* Typewriter paper */}
+          <div className="relative z-10 max-w-lg w-full animate-typewriter-roll">
             {/* Close button */}
             <button
               onClick={handleClose}
-              className="absolute -top-3 -right-3 z-20 w-8 h-8 rounded-full bg-foreground/80 text-background flex items-center justify-center shadow-lg hover:bg-foreground transition-colors duration-200 hover:scale-110 active:scale-95"
+              className="absolute -top-3 -right-3 z-20 w-8 h-8 rounded-full bg-white/90 text-black flex items-center justify-center shadow-lg hover:bg-white transition-all duration-200 hover:scale-110 active:scale-95"
               aria-label="Close poem"
             >
               <X size={16} />
             </button>
 
-            <div className="relative bg-book-paper border border-book-paper-edge rounded-sm shadow-xl overflow-hidden">
-              <div className="h-1 bg-gradient-to-r from-book-paper-edge via-book-paper to-book-paper-edge" />
-
-              <div className="flex items-center justify-center gap-2 pt-8 pb-2 px-8">
-                <div className="h-px flex-1 bg-book-paper-line" />
-                <div className="w-2 h-2 rotate-45 border border-book-paper-line" />
-                <div className="h-px flex-1 bg-book-paper-line" />
+            {/* Paper with typewriter aesthetic */}
+            <div
+              className="relative rounded shadow-2xl overflow-hidden"
+              style={{
+                backgroundColor: "hsl(42, 40%, 92%)",
+                boxShadow: "0 25px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,0,0,0.1)",
+              }}
+            >
+              {/* Typewriter roller bar */}
+              <div
+                className="h-3 flex items-center justify-between px-4"
+                style={{
+                  background: "linear-gradient(180deg, hsl(0,0%,30%), hsl(0,0%,20%), hsl(0,0%,25%))",
+                  boxShadow: "0 2px 4px rgba(0,0,0,0.3)",
+                }}
+              >
+                <div className="w-2 h-2 rounded-full bg-white/10" />
+                <div className="w-2 h-2 rounded-full bg-white/10" />
               </div>
 
-              <div className="px-8 sm:px-12 pb-8 opacity-0 animate-paper-content">
+              {/* Red margin line */}
+              <div className="absolute top-3 bottom-0 left-16 w-[1px] bg-red-400/30" />
 
-                <input
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  className="w-full font-display text-2xl sm:text-3xl font-bold text-foreground bg-transparent border-none outline-none mb-6 placeholder:text-muted-foreground/40"
-                  placeholder="Title"
-                />
+              {/* Horizontal ruled lines background */}
+              <div
+                className="px-8 sm:px-12 pt-8 pb-10"
+                style={{
+                  backgroundImage: `repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 27px,
+                    hsl(210, 20%, 80%) 27px,
+                    hsl(210, 20%, 80%) 28px
+                  )`,
+                  backgroundPosition: "0 12px",
+                }}
+              >
+                {isEditing ? (
+                  <>
+                    <input
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      className="w-full font-mono text-xl sm:text-2xl font-bold text-black/90 bg-transparent border-none outline-none mb-6 placeholder:text-black/25"
+                      placeholder="Title"
+                      style={{ letterSpacing: "0.05em" }}
+                    />
+                    <textarea
+                      ref={contentRef}
+                      value={editContent}
+                      onChange={(e) => setEditContent(e.target.value)}
+                      className="w-full min-h-[220px] font-mono text-sm sm:text-base leading-[28px] text-black/75 bg-transparent border-none outline-none resize-none placeholder:text-black/25"
+                      placeholder="Start typing your poem..."
+                      style={{ letterSpacing: "0.02em" }}
+                    />
+                  </>
+                ) : (
+                  <div onClick={handleStartEditing} className="cursor-text min-h-[280px]">
+                    {/* Typewriter title */}
+                    <h2
+                      className="font-mono text-xl sm:text-2xl font-bold text-black/90 mb-6"
+                      style={{ letterSpacing: "0.05em" }}
+                    >
+                      {titleTypewriter.displayed}
+                      {!titleTypewriter.done && (
+                        <span className="inline-block w-[2px] h-5 bg-black/70 ml-0.5 animate-blink align-middle" />
+                      )}
+                    </h2>
 
-                <textarea
-                  ref={contentRef}
-                  value={editContent}
-                  onChange={(e) => setEditContent(e.target.value)}
-                  className="w-full min-h-[200px] font-body text-sm sm:text-base leading-relaxed text-foreground/80 bg-transparent border-none outline-none resize-none placeholder:text-muted-foreground/40"
-                  placeholder="Write your poem here..."
-                />
+                    {/* Typewriter content */}
+                    {titleTypewriter.done && (
+                      <p
+                        className="font-mono text-sm sm:text-base leading-[28px] text-black/70 whitespace-pre-wrap"
+                        style={{ letterSpacing: "0.02em" }}
+                      >
+                        {contentTypewriter.displayed}
+                        {!contentTypewriter.done && (
+                          <span className="inline-block w-[2px] h-4 bg-black/70 ml-0.5 animate-blink align-middle" />
+                        )}
+                      </p>
+                    )}
+
+                    {/* Click to edit hint */}
+                    {contentTypewriter.done && (
+                      <p className="mt-6 text-xs text-black/30 font-mono animate-fade-in">
+                        [ click anywhere to edit ]
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
-              <div className="flex items-center justify-center gap-2 pb-6 px-8">
-                <div className="h-px flex-1 bg-book-paper-line" />
-                <span className="text-book-paper-line text-xs">✦</span>
-                <div className="h-px flex-1 bg-book-paper-line" />
-              </div>
-
-              <div className="h-1 bg-gradient-to-r from-book-paper-edge via-book-paper to-book-paper-edge" />
+              {/* Paper tear / bottom edge */}
+              <div
+                className="h-2"
+                style={{
+                  background: "linear-gradient(180deg, hsl(42, 40%, 88%), hsl(42, 35%, 82%))",
+                  boxShadow: "inset 0 1px 0 rgba(0,0,0,0.05)",
+                }}
+              />
             </div>
           </div>
         </div>,

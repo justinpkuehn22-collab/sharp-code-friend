@@ -141,6 +141,15 @@ export default {
           "50%": { transform: "rotate(-15deg)" },
           "100%": { transform: "rotate(15deg)" },
         },
+        "typewriter-roll": {
+          "0%": { opacity: "0", transform: "translateY(40px) scale(0.92)" },
+          "40%": { opacity: "1", transform: "translateY(-4px) scale(1.01)" },
+          "100%": { opacity: "1", transform: "translateY(0) scale(1)" },
+        },
+        "blink": {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -152,6 +161,8 @@ export default {
         "page-turn": "page-turn 0.4s ease-out forwards",
         "float": "float 3s ease-in-out infinite",
         "pendulum": "pendulum 2s ease-in-out infinite",
+        "typewriter-roll": "typewriter-roll 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards",
+        "blink": "blink 0.8s step-end infinite",
       },
     },
   },
