@@ -124,7 +124,7 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
               </div>
 
               {/* Content area */}
-              <div className="px-8 sm:px-12 pb-8 animate-paper-content">
+              <div className="px-8 sm:px-12 pb-8 opacity-0 animate-paper-content">
                 {/* Hint */}
                 <p className="text-right text-[10px] text-muted-foreground/60 mb-4 font-body select-none">
                   double-click to close
