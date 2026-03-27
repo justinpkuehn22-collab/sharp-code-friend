@@ -393,7 +393,20 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
                     />
                   </>
                 ) : (
-                  <div onClick={handleStartEditing} className="cursor-text min-h-[300px]">
+                  <div
+                    onClick={() => {
+                      if (titleTypewriter.done && contentTypewriter.done) {
+                        handleStartEditing();
+                      }
+                    }}
+                    onDoubleClick={(e) => {
+                      e.stopPropagation();
+                      if (!titleTypewriter.done || !contentTypewriter.done) {
+                        skipAll();
+                      }
+                    }}
+                    className="cursor-text min-h-[300px]"
+                  >
                     {/* Title — typewriter */}
                     <h2
                       className="font-display text-2xl sm:text-4xl font-bold mb-8"
