@@ -111,7 +111,7 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
               "relative z-10 max-w-lg w-full animate-scale-in",
               "flex flex-col",
             )}
-            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
           >
             {/* Paper curl / shadow effect */}
             <div className="absolute -bottom-2 left-4 right-4 h-4 bg-foreground/10 rounded-b-lg blur-md" />
