@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import type { Poem } from "@/data/poems";
-import { X } from "lucide-react";
+import { usePoemStore } from "@/stores/poem-store";
+import { X, Pen } from "lucide-react";
 
 interface PoemBookProps {
   poem: Poem;
@@ -10,106 +11,207 @@ interface PoemBookProps {
 
 export const PoemBook = ({ poem, index }: PoemBookProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(poem.title);
+  const [editContent, setEditContent] = useState(poem.content);
+  const titleRef = useRef<HTMLInputElement>(null);
+  const contentRef = useRef<HTMLTextAreaElement>(null);
+  const { updatePoem } = usePoemStore();
 
-  const colorClasses = {
-    pink: {
-      spine: "bg-book-pink",
-      cover: "bg-book-pink-light border-book-pink",
-      text: "text-primary",
-    },
-    green: {
-      spine: "bg-book-green",
-      cover: "bg-book-green-light border-book-green",
-      text: "text-secondary",
-    },
+  useEffect(() => {
+    if (isEditing && contentRef.current) {
+      contentRef.current.focus();
+    }
+  }, [isEditing]);
+
+  const handleSave = () => {
+    updatePoem(poem.id, { title: editTitle, content: editContent });
+    setIsEditing(false);
   };
 
-  const colors = colorClasses[poem.color];
+  const handleOpen = () => {
+    setEditTitle(poem.title);
+    setEditContent(poem.content);
+    setIsOpen(true);
+  };
+
+  const handleClose = () => {
+    if (isEditing) {
+      handleSave();
+    }
+    setIsOpen(false);
+    setIsEditing(false);
+  };
+
+  const isEmpty = poem.content.trim() === "";
 
   return (
     <>
       {/* Book on shelf */}
       <button
-        onClick={() => setIsOpen(true)}
+        onClick={handleOpen}
         className={cn(
           "book-spine group relative flex flex-col items-center justify-end",
           "rounded-t-sm rounded-b-md shadow-md",
-          "w-16 sm:w-20 md:w-24",
-          colors.spine,
+          "w-10 sm:w-12 md:w-14",
+          "bg-book-spine",
         )}
         style={{
-          height: `${160 + (index % 3) * 30}px`,
-          animationDelay: `${index * 0.15}s`,
+          height: `${140 + (index % 4) * 25}px`,
+          animationDelay: `${index * 0.1}s`,
         }}
         aria-label={`Open poem: ${poem.title}`}
       >
         {/* Spine edge highlight */}
-        <div className="absolute left-0 top-0 h-full w-1.5 rounded-tl-sm rounded-bl-md bg-foreground/10" />
+        <div className="absolute left-0 top-0 h-full w-1 rounded-tl-sm rounded-bl-md bg-book-spine-edge" />
+
+        {/* Gold line details */}
+        <div className="absolute left-2 right-2 top-3 h-px bg-primary/40" />
+        <div className="absolute left-2 right-2 bottom-8 h-px bg-primary/40" />
 
         {/* Title on spine */}
         <span
           className={cn(
             "absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2",
-            "writing-mode-vertical font-display text-xs sm:text-sm font-semibold",
-            "text-primary-foreground opacity-90 whitespace-nowrap",
+            "font-display text-[9px] sm:text-[10px] font-semibold",
+            "text-primary-foreground/80 whitespace-nowrap",
             "rotate-180",
+            isEmpty && "italic text-primary-foreground/40",
           )}
           style={{ writingMode: "vertical-rl" }}
         >
           {poem.title}
         </span>
 
-        {/* Hover indicator */}
-        <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-primary-foreground opacity-0 group-hover:opacity-60 transition-opacity duration-300" />
+        {/* Hover glow */}
+        <div className="absolute inset-0 rounded-t-sm rounded-b-md bg-primary/0 group-hover:bg-primary/10 transition-colors duration-300" />
       </button>
 
       {/* Open poem overlay */}
       {isOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8"
-          onClick={() => setIsOpen(false)}
+          onClick={handleClose}
           role="dialog"
           aria-modal="true"
         >
           {/* Backdrop */}
-          <div className="absolute inset-0 bg-foreground/20 backdrop-blur-sm animate-fade-in" />
+          <div className="absolute inset-0 bg-foreground/30 backdrop-blur-sm animate-fade-in" />
 
-          {/* Poem card */}
+          {/* Paper document */}
           <div
             className={cn(
-              "relative z-10 max-w-md w-full p-8 sm:p-10 rounded-lg border-2 shadow-xl animate-scale-in",
-              colors.cover,
+              "relative z-10 max-w-lg w-full animate-scale-in",
+              "flex flex-col",
             )}
             onClick={(e) => e.stopPropagation()}
           >
-            <button
-              onClick={() => setIsOpen(false)}
-              className="absolute top-4 right-4 text-foreground/50 hover:text-foreground transition-colors"
-              aria-label="Close poem"
-            >
-              <X size={20} />
-            </button>
+            {/* Paper curl / shadow effect */}
+            <div className="absolute -bottom-2 left-4 right-4 h-4 bg-foreground/10 rounded-b-lg blur-md" />
 
-            <h2 className={cn("font-display text-2xl sm:text-3xl font-bold mb-6", colors.text)}>
-              {poem.title}
-            </h2>
+            {/* Main paper */}
+            <div className="relative bg-book-paper border border-book-paper-edge rounded-sm shadow-xl overflow-hidden">
+              {/* Aged paper texture top border */}
+              <div className="h-1 bg-gradient-to-r from-book-paper-edge via-book-paper to-book-paper-edge" />
 
-            <div className="space-y-1">
-              {poem.lines.map((line, i) => (
-                <p
-                  key={i}
-                  className={cn(
-                    "font-body text-sm sm:text-base leading-relaxed text-foreground/80",
-                    line === "" && "h-4",
-                  )}
-                  style={{
-                    opacity: 0,
-                    animation: `fade-in 0.4s ease-out ${i * 0.06}s forwards`,
-                  }}
-                >
-                  {line || "\u00A0"}
-                </p>
-              ))}
+              {/* Decorative header flourish */}
+              <div className="flex items-center justify-center gap-2 pt-8 pb-2 px-8">
+                <div className="h-px flex-1 bg-book-paper-line" />
+                <div className="w-2 h-2 rotate-45 border border-book-paper-line" />
+                <div className="h-px flex-1 bg-book-paper-line" />
+              </div>
+
+              {/* Content area */}
+              <div className="px-8 sm:px-12 pb-8">
+                {/* Close & edit buttons */}
+                <div className="flex justify-end gap-2 mb-4">
+                  <button
+                    onClick={() => {
+                      if (isEditing) {
+                        handleSave();
+                      } else {
+                        setIsEditing(true);
+                      }
+                    }}
+                    className={cn(
+                      "p-1.5 rounded-full transition-colors",
+                      isEditing
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                    aria-label={isEditing ? "Save poem" : "Edit poem"}
+                  >
+                    <Pen size={14} />
+                  </button>
+                  <button
+                    onClick={handleClose}
+                    className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                    aria-label="Close poem"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+
+                {/* Title */}
+                {isEditing ? (
+                  <input
+                    ref={titleRef}
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    className="w-full font-display text-2xl sm:text-3xl font-bold text-foreground bg-transparent border-b border-dashed border-book-paper-line outline-none mb-6 pb-1"
+                    placeholder="Title"
+                  />
+                ) : (
+                  <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground mb-6">
+                    {poem.title}
+                  </h2>
+                )}
+
+                {/* Poem content */}
+                {isEditing ? (
+                  <textarea
+                    ref={contentRef}
+                    value={editContent}
+                    onChange={(e) => setEditContent(e.target.value)}
+                    className="w-full min-h-[200px] font-body text-sm sm:text-base leading-relaxed text-foreground/80 bg-transparent border-none outline-none resize-none"
+                    placeholder="Write your poem here..."
+                  />
+                ) : (
+                  <div className="space-y-1 min-h-[120px]">
+                    {isEmpty ? (
+                      <p className="font-body text-sm italic text-muted-foreground">
+                        Click the pen to start writing...
+                      </p>
+                    ) : (
+                      poem.content.split("\n").map((line, i) => (
+                        <p
+                          key={i}
+                          className={cn(
+                            "font-body text-sm sm:text-base leading-relaxed text-foreground/80",
+                            line === "" && "h-4",
+                          )}
+                          style={{
+                            opacity: 0,
+                            animation: `fade-in 0.4s ease-out ${i * 0.05}s forwards`,
+                          }}
+                        >
+                          {line || "\u00A0"}
+                        </p>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Decorative footer flourish */}
+              <div className="flex items-center justify-center gap-2 pb-6 px-8">
+                <div className="h-px flex-1 bg-book-paper-line" />
+                <span className="text-book-paper-line text-xs">✦</span>
+                <div className="h-px flex-1 bg-book-paper-line" />
+              </div>
+
+              {/* Bottom aged edge */}
+              <div className="h-1 bg-gradient-to-r from-book-paper-edge via-book-paper to-book-paper-edge" />
             </div>
           </div>
         </div>

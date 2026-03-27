@@ -52,11 +52,12 @@ export default {
           foreground: "hsl(var(--card-foreground))",
         },
         book: {
-          pink: "hsl(var(--book-pink))",
-          green: "hsl(var(--book-green))",
+          spine: "hsl(var(--book-spine))",
+          "spine-edge": "hsl(var(--book-spine-edge))",
           "tan-dark": "hsl(var(--book-tan-dark))",
-          "pink-light": "hsl(var(--book-pink-light))",
-          "green-light": "hsl(var(--book-green-light))",
+          paper: "hsl(var(--book-paper))",
+          "paper-edge": "hsl(var(--book-paper-edge))",
+          "paper-line": "hsl(var(--book-paper-line))",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",

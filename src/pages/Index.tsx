@@ -1,8 +1,12 @@
-import { poems } from "@/data/poems";
+import { usePoemStore } from "@/stores/poem-store";
 import { PoemBook } from "@/components/poem-book";
 import { BookOpen } from "lucide-react";
 
 export const Index = () => {
+  const { poems } = usePoemStore();
+  const topRow = poems.slice(0, 7);
+  const bottomRow = poems.slice(7);
+
   return (
     <div className="min-h-screen bg-background flex flex-col items-center px-4 py-12 sm:py-20">
       {/* Header */}
@@ -15,30 +19,51 @@ export const Index = () => {
           <BookOpen className="text-secondary" size={28} />
         </div>
         <p className="font-body text-muted-foreground text-lg max-w-md mx-auto">
-          Pick a book, read a poem. Each one is a small world.
+          Pick a book, read a poem. Click the pen to write your own.
         </p>
       </header>
 
       {/* Bookshelf */}
-      <div className="w-full max-w-2xl">
-        {/* Books row */}
-        <div className="flex items-end justify-center gap-2 sm:gap-3 px-4">
-          {poems.map((poem, i) => (
-            <div
-              key={poem.id}
-              className="opacity-0 animate-fade-in"
-              style={{ animationDelay: `${0.2 + i * 0.1}s` }}
-            >
-              <PoemBook poem={poem} index={i} />
-            </div>
-          ))}
+      <div className="w-full max-w-2xl space-y-0">
+        {/* Top shelf */}
+        <div>
+          <div className="flex items-end justify-center gap-1.5 sm:gap-2 px-4">
+            {topRow.map((poem, i) => (
+              <div
+                key={poem.id}
+                className="opacity-0 animate-fade-in"
+                style={{ animationDelay: `${0.2 + i * 0.08}s` }}
+              >
+                <PoemBook poem={poem} index={i} />
+              </div>
+            ))}
+          </div>
+          <div className="relative mt-0">
+            <div className="h-3 bg-book-tan-dark rounded-b-sm shadow-md" />
+            <div className="h-1.5 bg-book-tan-dark/60 rounded-b-md mx-1" />
+          </div>
         </div>
 
-        {/* Shelf */}
-        <div className="relative mt-0">
-          <div className="h-4 bg-book-tan-dark rounded-b-sm shadow-md" />
-          <div className="h-2 bg-book-tan-dark/60 rounded-b-md mx-1" />
-        </div>
+        {/* Bottom shelf */}
+        {bottomRow.length > 0 && (
+          <div className="mt-6">
+            <div className="flex items-end justify-center gap-1.5 sm:gap-2 px-4">
+              {bottomRow.map((poem, i) => (
+                <div
+                  key={poem.id}
+                  className="opacity-0 animate-fade-in"
+                  style={{ animationDelay: `${0.6 + i * 0.08}s` }}
+                >
+                  <PoemBook poem={poem} index={i + 7} />
+                </div>
+              ))}
+            </div>
+            <div className="relative mt-0">
+              <div className="h-3 bg-book-tan-dark rounded-b-sm shadow-md" />
+              <div className="h-1.5 bg-book-tan-dark/60 rounded-b-md mx-1" />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Footer */}
