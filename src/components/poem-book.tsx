@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 import type { Poem } from "@/data/poems";
@@ -17,7 +17,7 @@ const seededRandom = (seed: number) => {
 
 const bookmarkColors = ["bg-primary", "bg-secondary"];
 
-// Typewriter effect hook
+// Typewriter effect hook — much slower
 const useTypewriter = (text: string, speed = 30, active = false) => {
   const [displayed, setDisplayed] = useState("");
   const [done, setDone] = useState(false);
@@ -31,18 +31,84 @@ const useTypewriter = (text: string, speed = 30, active = false) => {
     setDisplayed("");
     setDone(false);
     let i = 0;
-    const interval = setInterval(() => {
+    const tick = () => {
       i++;
       setDisplayed(text.slice(0, i));
       if (i >= text.length) {
-        clearInterval(interval);
         setDone(true);
+        return;
       }
-    }, speed);
-    return () => clearInterval(interval);
+      // Pause longer on newlines and punctuation
+      const char = text[i - 1];
+      let delay = speed;
+      if (char === "\n") delay = speed * 6;
+      else if (char === "." || char === "—" || char === "…") delay = speed * 4;
+      else if (char === ",") delay = speed * 2.5;
+      setTimeout(tick, delay);
+    };
+    const initial = setTimeout(tick, speed);
+    return () => clearTimeout(initial);
   }, [text, speed, active]);
 
   return { displayed, done };
+};
+
+// Extract line-ending words for rhyme highlighting
+const getEndWords = (text: string): Set<string> => {
+  const lines = text.split("\n").filter((l) => l.trim().length > 0);
+  const endWords = new Set<string>();
+  for (const line of lines) {
+    const words = line.trim().split(/\s+/);
+    const last = words[words.length - 1];
+    if (last) endWords.add(last.replace(/[.,;:!?—"']/g, "").toLowerCase());
+  }
+  return endWords;
+};
+
+// Render text with highlighted end-of-line words
+const HighlightedPoem = ({ text }: { text: string }) => {
+  const endWords = useMemo(() => getEndWords(text), [text]);
+
+  const lines = text.split("\n");
+  return (
+    <>
+      {lines.map((line, li) => {
+        if (line.trim() === "") return <br key={li} />;
+        const words = line.split(/(\s+)/);
+        // Find the last actual word in the line
+        let lastWordIdx = -1;
+        for (let j = words.length - 1; j >= 0; j--) {
+          if (words[j].trim().length > 0) {
+            lastWordIdx = j;
+            break;
+          }
+        }
+        return (
+          <span key={li}>
+            {words.map((word, wi) => {
+              const clean = word.replace(/[.,;:!?—"']/g, "").toLowerCase();
+              const isEndWord = wi === lastWordIdx && endWords.has(clean);
+              if (isEndWord) {
+                return (
+                  <span
+                    key={wi}
+                    className="text-primary font-semibold"
+                    style={{
+                      textShadow: "0 0 12px hsl(345, 40%, 65%, 0.3)",
+                    }}
+                  >
+                    {word}
+                  </span>
+                );
+              }
+              return <span key={wi}>{word}</span>;
+            })}
+            {li < lines.length - 1 && "\n"}
+          </span>
+        );
+      })}
+    </>
+  );
 };
 
 export const PoemBook = ({ poem, index }: PoemBookProps) => {
@@ -55,9 +121,9 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
 
   const hasContent = poem.content.trim() !== "";
 
-  // Typewriter for title and content on open
-  const titleTypewriter = useTypewriter(poem.title, 60, isOpen && !isEditing && hasContent);
-  const contentTypewriter = useTypewriter(poem.content, 18, isOpen && !isEditing && hasContent && titleTypewriter.done);
+  // Slower typewriter
+  const titleTypewriter = useTypewriter(poem.title, 120, isOpen && !isEditing && hasContent);
+  const contentTypewriter = useTypewriter(poem.content, 55, isOpen && !isEditing && hasContent && titleTypewriter.done);
 
   const handleSave = useCallback(() => {
     updatePoem(poem.id, { title: editTitle, content: editContent });
@@ -123,7 +189,6 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
         }}
         aria-label={`Open poem: ${poem.title}`}
       >
-        {/* Leather spine left edge */}
         <div
           className="absolute left-0 top-0 h-full w-1.5 rounded-tl-sm rounded-bl-md"
           style={{ backgroundColor: "hsl(28, 10%, 18%)" }}
@@ -133,13 +198,11 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
           style={{ backgroundColor: "hsl(28, 8%, 8%)" }}
         />
 
-        {/* Gold foil lines */}
         <div className="absolute left-2 right-2 top-3 h-px bg-clock-trim/25" />
         <div className="absolute left-3 right-3 top-[18px] h-px bg-clock-trim/15" />
         <div className="absolute left-2 right-2 bottom-6 h-px bg-clock-trim/25" />
         <div className="absolute left-3 right-3 bottom-[30px] h-px bg-clock-trim/15" />
 
-        {/* Leather texture */}
         <div
           className="absolute inset-0 rounded-t-sm rounded-b-md opacity-20 pointer-events-none"
           style={{
@@ -147,7 +210,6 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
           }}
         />
 
-        {/* Title */}
         <span
           className={cn(
             "absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2",
@@ -165,7 +227,6 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
           {poem.title}
         </span>
 
-        {/* Bookmark */}
         {hasContent && (
           <div
             className={cn(
@@ -178,11 +239,10 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
           />
         )}
 
-        {/* Hover glow */}
         <div className="absolute inset-0 rounded-t-sm rounded-b-md bg-white/0 group-hover:bg-white/[0.07] transition-colors duration-500" />
       </button>
 
-      {/* Typewriter-style poem overlay */}
+      {/* Poem reading overlay — clean, dramatic, elegant */}
       {isOpen && createPortal(
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8"
@@ -190,119 +250,117 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
           role="dialog"
           aria-modal="true"
         >
-          {/* Dark backdrop */}
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-md animate-fade-in pointer-events-none" />
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-lg animate-fade-in pointer-events-none" />
 
-          {/* Typewriter paper */}
-          <div className="relative z-10 max-w-lg w-full animate-typewriter-roll">
-            {/* Close button */}
+          <div className="relative z-10 max-w-xl w-full animate-typewriter-roll">
+            {/* Close */}
             <button
               onClick={handleClose}
-              className="absolute -top-3 -right-3 z-20 w-8 h-8 rounded-full bg-white/90 text-black flex items-center justify-center shadow-lg hover:bg-white transition-all duration-200 hover:scale-110 active:scale-95"
+              className="absolute -top-4 -right-4 z-20 w-9 h-9 rounded-full flex items-center justify-center shadow-xl transition-all duration-200 hover:scale-110 active:scale-95"
+              style={{
+                background: "hsl(var(--primary))",
+                color: "hsl(var(--primary-foreground))",
+              }}
               aria-label="Close poem"
             >
               <X size={16} />
             </button>
 
-            {/* Paper with typewriter aesthetic */}
+            {/* Elegant dark paper */}
             <div
-              className="relative rounded shadow-2xl overflow-hidden"
+              className="relative rounded-md overflow-hidden"
               style={{
-                backgroundColor: "hsl(42, 40%, 92%)",
-                boxShadow: "0 25px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,0,0,0.1)",
+                backgroundColor: "hsl(30, 10%, 8%)",
+                boxShadow: "0 30px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05) inset",
               }}
             >
-              {/* Typewriter roller bar */}
-              <div
-                className="h-3 flex items-center justify-between px-4"
-                style={{
-                  background: "linear-gradient(180deg, hsl(0,0%,30%), hsl(0,0%,20%), hsl(0,0%,25%))",
-                  boxShadow: "0 2px 4px rgba(0,0,0,0.3)",
-                }}
-              >
-                <div className="w-2 h-2 rounded-full bg-white/10" />
-                <div className="w-2 h-2 rounded-full bg-white/10" />
-              </div>
+              {/* Top gold trim */}
+              <div className="h-[2px]" style={{ background: "linear-gradient(90deg, transparent, hsl(38, 55%, 50%), transparent)" }} />
 
-              {/* Red margin line */}
-              <div className="absolute top-3 bottom-0 left-16 w-[1px] bg-red-400/30" />
-
-              {/* Horizontal ruled lines background */}
-              <div
-                className="px-8 sm:px-12 pt-8 pb-10"
-                style={{
-                  backgroundImage: `repeating-linear-gradient(
-                    0deg,
-                    transparent,
-                    transparent 27px,
-                    hsl(210, 20%, 80%) 27px,
-                    hsl(210, 20%, 80%) 28px
-                  )`,
-                  backgroundPosition: "0 12px",
-                }}
-              >
+              {/* Content */}
+              <div className="px-10 sm:px-14 py-10 sm:py-14">
                 {isEditing ? (
                   <>
                     <input
                       value={editTitle}
                       onChange={(e) => setEditTitle(e.target.value)}
-                      className="w-full font-mono text-xl sm:text-2xl font-bold text-black/90 bg-transparent border-none outline-none mb-6 placeholder:text-black/25"
+                      className="w-full font-display text-2xl sm:text-3xl font-bold bg-transparent border-none outline-none mb-8 placeholder:opacity-30"
                       placeholder="Title"
-                      style={{ letterSpacing: "0.05em" }}
+                      style={{ color: "hsl(38, 55%, 70%)", letterSpacing: "0.04em" }}
                     />
                     <textarea
                       ref={contentRef}
                       value={editContent}
                       onChange={(e) => setEditContent(e.target.value)}
-                      className="w-full min-h-[220px] font-mono text-sm sm:text-base leading-[28px] text-black/75 bg-transparent border-none outline-none resize-none placeholder:text-black/25"
-                      placeholder="Start typing your poem..."
-                      style={{ letterSpacing: "0.02em" }}
+                      className="w-full min-h-[240px] font-body text-base sm:text-lg leading-[2] bg-transparent border-none outline-none resize-none placeholder:opacity-20"
+                      placeholder="Write your poem here..."
+                      style={{ color: "hsl(34, 30%, 75%)", letterSpacing: "0.01em" }}
                     />
                   </>
                 ) : (
-                  <div onClick={handleStartEditing} className="cursor-text min-h-[280px]">
-                    {/* Typewriter title */}
+                  <div onClick={handleStartEditing} className="cursor-text min-h-[300px]">
+                    {/* Title — typewriter */}
                     <h2
-                      className="font-mono text-xl sm:text-2xl font-bold text-black/90 mb-6"
-                      style={{ letterSpacing: "0.05em" }}
+                      className="font-display text-2xl sm:text-4xl font-bold mb-8"
+                      style={{
+                        color: "hsl(38, 55%, 70%)",
+                        letterSpacing: "0.04em",
+                        textShadow: "0 0 20px hsl(38, 55%, 50%, 0.2)",
+                      }}
                     >
                       {titleTypewriter.displayed}
                       {!titleTypewriter.done && (
-                        <span className="inline-block w-[2px] h-5 bg-black/70 ml-0.5 animate-blink align-middle" />
+                        <span
+                          className="inline-block w-[3px] h-7 sm:h-9 ml-1 animate-blink align-middle rounded-sm"
+                          style={{ backgroundColor: "hsl(38, 55%, 60%)" }}
+                        />
                       )}
                     </h2>
 
-                    {/* Typewriter content */}
+                    {/* Divider after title */}
                     {titleTypewriter.done && (
-                      <p
-                        className="font-mono text-sm sm:text-base leading-[28px] text-black/70 whitespace-pre-wrap"
-                        style={{ letterSpacing: "0.02em" }}
-                      >
-                        {contentTypewriter.displayed}
-                        {!contentTypewriter.done && (
-                          <span className="inline-block w-[2px] h-4 bg-black/70 ml-0.5 animate-blink align-middle" />
-                        )}
-                      </p>
+                      <div className="flex items-center gap-3 mb-8 animate-fade-in">
+                        <div className="h-px flex-1" style={{ background: "linear-gradient(90deg, hsl(38,55%,50%,0.4), transparent)" }} />
+                        <span style={{ color: "hsl(38, 55%, 50%, 0.5)" }} className="text-xs">✦</span>
+                        <div className="h-px flex-1" style={{ background: "linear-gradient(90deg, transparent, hsl(38,55%,50%,0.4))" }} />
+                      </div>
                     )}
 
-                    {/* Click to edit hint */}
+                    {/* Content — typewriter with highlighted end words */}
+                    {titleTypewriter.done && (
+                      <div
+                        className="font-body text-base sm:text-lg leading-[2.2] whitespace-pre-wrap"
+                        style={{
+                          color: "hsl(34, 20%, 65%)",
+                          letterSpacing: "0.01em",
+                        }}
+                      >
+                        {contentTypewriter.done ? (
+                          <HighlightedPoem text={poem.content} />
+                        ) : (
+                          <>
+                            {contentTypewriter.displayed}
+                            <span
+                              className="inline-block w-[2px] h-4 sm:h-5 ml-0.5 animate-blink align-middle rounded-sm"
+                              style={{ backgroundColor: "hsl(38, 55%, 60%)" }}
+                            />
+                          </>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Edit hint */}
                     {contentTypewriter.done && (
-                      <p className="mt-6 text-xs text-black/30 font-mono animate-fade-in">
-                        [ click anywhere to edit ]
+                      <p className="mt-10 text-center text-xs animate-fade-in" style={{ color: "hsl(34, 20%, 35%)" }}>
+                        tap to edit
                       </p>
                     )}
                   </div>
                 )}
               </div>
 
-              {/* Paper tear / bottom edge */}
-              <div
-                className="h-2"
-                style={{
-                  background: "linear-gradient(180deg, hsl(42, 40%, 88%), hsl(42, 35%, 82%))",
-                  boxShadow: "inset 0 1px 0 rgba(0,0,0,0.05)",
-                }}
-              />
+              {/* Bottom gold trim */}
+              <div className="h-[2px]" style={{ background: "linear-gradient(90deg, transparent, hsl(38, 55%, 50%), transparent)" }} />
             </div>
           </div>
         </div>,
