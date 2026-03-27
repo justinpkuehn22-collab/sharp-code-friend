@@ -201,6 +201,25 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
   const titleTypewriter = useTypewriter(poem.title, 120, isOpen && !isEditing && hasContent);
   const contentTypewriter = useTypewriter(poem.content, 55, isOpen && !isEditing && hasContent && titleTypewriter.done);
 
+  const skipAll = useCallback(() => {
+    titleTypewriter.skip();
+    contentTypewriter.skip();
+  }, [titleTypewriter, contentTypewriter]);
+
+  // Enter key to skip typewriter
+  useEffect(() => {
+    if (!isOpen || isEditing) return;
+    if (titleTypewriter.done && contentTypewriter.done) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        skipAll();
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [isOpen, isEditing, titleTypewriter.done, contentTypewriter.done, skipAll]);
+
   const handleSave = useCallback(() => {
     updatePoem(poem.id, { title: editTitle, content: editContent });
   }, [poem.id, editTitle, editContent, updatePoem]);
