@@ -422,11 +422,10 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
                         <p
                           className="text-right text-2xl sm:text-3xl"
                           style={{
-                            fontFamily: "'Playfair Display', serif",
-                            fontStyle: "italic",
+                            fontFamily: "'Dancing Script', cursive",
                             color: "hsl(38, 55%, 55%)",
                             textShadow: "0 0 10px hsl(38, 55%, 50%, 0.15)",
-                            letterSpacing: "0.06em",
+                            letterSpacing: "0.02em",
                           }}
                         >
                           — JK
