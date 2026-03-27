@@ -92,6 +92,28 @@ export default {
           "0%": { transform: "scale(0.95)", opacity: "0" },
           "100%": { transform: "scale(1)", opacity: "1" },
         },
+        "paper-unfold": {
+          "0%": {
+            transform: "scaleY(0.05) scaleX(0.6)",
+            opacity: "0",
+            transformOrigin: "top center",
+          },
+          "40%": {
+            transform: "scaleY(1) scaleX(0.6)",
+            opacity: "1",
+            transformOrigin: "top center",
+          },
+          "100%": {
+            transform: "scaleY(1) scaleX(1)",
+            opacity: "1",
+            transformOrigin: "top center",
+          },
+        },
+        "paper-content": {
+          "0%": { opacity: "0" },
+          "60%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
         "page-turn": {
           "0%": { transform: "rotateY(0deg)" },
           "100%": { transform: "rotateY(-15deg)" },
@@ -106,6 +128,8 @@ export default {
         "accordion-up": "accordion-up 0.2s ease-out",
         "fade-in": "fade-in 0.5s ease-out forwards",
         "scale-in": "scale-in 0.3s ease-out",
+        "paper-unfold": "paper-unfold 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards",
+        "paper-content": "paper-content 0.6s ease-out forwards",
         "page-turn": "page-turn 0.4s ease-out forwards",
         "float": "float 3s ease-in-out infinite",
       },
