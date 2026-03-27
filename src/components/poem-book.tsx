@@ -368,6 +368,15 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
               <X size={16} />
             </button>
 
+            {/* Delete */}
+            <button
+              onClick={handleDelete}
+              className="absolute -top-4 -left-4 z-20 w-9 h-9 rounded-full flex items-center justify-center shadow-xl transition-all duration-200 hover:scale-110 active:scale-95 bg-destructive text-destructive-foreground"
+              aria-label="Delete poem"
+            >
+              <Trash2 size={14} />
+            </button>
+
             {/* Elegant dark paper */}
             <div
               className="relative rounded-md overflow-hidden"
