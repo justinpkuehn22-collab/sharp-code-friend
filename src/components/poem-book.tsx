@@ -1,8 +1,7 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import type { Poem } from "@/data/poems";
 import { usePoemStore } from "@/stores/poem-store";
-import { X, Pen } from "lucide-react";
 
 interface PoemBookProps {
   poem: Poem;
@@ -11,23 +10,15 @@ interface PoemBookProps {
 
 export const PoemBook = ({ poem, index }: PoemBookProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(poem.title);
   const [editContent, setEditContent] = useState(poem.content);
   const titleRef = useRef<HTMLInputElement>(null);
   const contentRef = useRef<HTMLTextAreaElement>(null);
   const { updatePoem } = usePoemStore();
 
-  useEffect(() => {
-    if (isEditing && contentRef.current) {
-      contentRef.current.focus();
-    }
-  }, [isEditing]);
-
-  const handleSave = () => {
+  const handleSave = useCallback(() => {
     updatePoem(poem.id, { title: editTitle, content: editContent });
-    setIsEditing(false);
-  };
+  }, [poem.id, editTitle, editContent, updatePoem]);
 
   const handleOpen = () => {
     setEditTitle(poem.title);
@@ -35,13 +26,25 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
     setIsOpen(true);
   };
 
-  const handleClose = () => {
-    if (isEditing) {
-      handleSave();
-    }
+  const handleClose = useCallback(() => {
+    handleSave();
     setIsOpen(false);
-    setIsEditing(false);
-  };
+  }, [handleSave]);
+
+  useEffect(() => {
+    if (isOpen && contentRef.current) {
+      contentRef.current.focus();
+    }
+  }, [isOpen]);
+
+  // Auto-save on changes
+  useEffect(() => {
+    if (!isOpen) return;
+    const timeout = setTimeout(() => {
+      updatePoem(poem.id, { title: editTitle, content: editContent });
+    }, 500);
+    return () => clearTimeout(timeout);
+  }, [editTitle, editContent, isOpen, poem.id, updatePoem]);
 
   const isEmpty = poem.content.trim() === "";
 
@@ -90,20 +93,16 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
         <div className="absolute inset-0 rounded-t-sm rounded-b-md bg-primary/0 group-hover:bg-primary/10 transition-colors duration-300" />
       </button>
 
-      {/* Open poem overlay */}
+      {/* Open poem overlay — double-click backdrop or paper to close */}
       {isOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8"
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) {
-              handleClose();
-            }
-          }}
+          onDoubleClick={handleClose}
           role="dialog"
           aria-modal="true"
         >
           {/* Backdrop */}
-          <div className="absolute inset-0 bg-foreground/30 backdrop-blur-sm animate-fade-in" />
+          <div className="absolute inset-0 bg-foreground/30 backdrop-blur-sm animate-fade-in pointer-events-none" />
 
           {/* Paper document */}
           <div
@@ -111,7 +110,6 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
               "relative z-10 max-w-lg w-full animate-scale-in",
               "flex flex-col",
             )}
-            onMouseDown={(e) => e.stopPropagation()}
           >
             {/* Paper curl / shadow effect */}
             <div className="absolute -bottom-2 left-4 right-4 h-4 bg-foreground/10 rounded-b-lg blur-md" />
@@ -130,84 +128,28 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
 
               {/* Content area */}
               <div className="px-8 sm:px-12 pb-8">
-                {/* Close & edit buttons */}
-                <div className="flex justify-end gap-2 mb-4">
-                  <button
-                    onClick={() => {
-                      if (isEditing) {
-                        handleSave();
-                      } else {
-                        setIsEditing(true);
-                      }
-                    }}
-                    className={cn(
-                      "p-1.5 rounded-full transition-colors",
-                      isEditing
-                        ? "bg-primary text-primary-foreground"
-                        : "text-muted-foreground hover:text-foreground",
-                    )}
-                    aria-label={isEditing ? "Save poem" : "Edit poem"}
-                  >
-                    <Pen size={14} />
-                  </button>
-                  <button
-                    onClick={handleClose}
-                    className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
-                    aria-label="Close poem"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
+                {/* Hint */}
+                <p className="text-right text-[10px] text-muted-foreground/60 mb-4 font-body select-none">
+                  double-click to close
+                </p>
 
-                {/* Title */}
-                {isEditing ? (
-                  <input
-                    ref={titleRef}
-                    value={editTitle}
-                    onChange={(e) => setEditTitle(e.target.value)}
-                    className="w-full font-display text-2xl sm:text-3xl font-bold text-foreground bg-transparent border-b border-dashed border-book-paper-line outline-none mb-6 pb-1"
-                    placeholder="Title"
-                  />
-                ) : (
-                  <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground mb-6">
-                    {poem.title}
-                  </h2>
-                )}
+                {/* Editable title */}
+                <input
+                  ref={titleRef}
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="w-full font-display text-2xl sm:text-3xl font-bold text-foreground bg-transparent border-none outline-none mb-6 placeholder:text-muted-foreground/40"
+                  placeholder="Title"
+                />
 
-                {/* Poem content */}
-                {isEditing ? (
-                  <textarea
-                    ref={contentRef}
-                    value={editContent}
-                    onChange={(e) => setEditContent(e.target.value)}
-                    className="w-full min-h-[200px] font-body text-sm sm:text-base leading-relaxed text-foreground/80 bg-transparent border-none outline-none resize-none"
-                    placeholder="Write your poem here..."
-                  />
-                ) : (
-                  <div className="space-y-1 min-h-[120px]">
-                    {isEmpty ? (
-                      <p className="font-body text-sm italic text-muted-foreground">
-                        Click the pen to start writing...
-                      </p>
-                    ) : (
-                      poem.content.split("\n").map((line, i) => (
-                        <p
-                          key={i}
-                          className={cn(
-                            "font-body text-sm sm:text-base leading-relaxed text-foreground/80",
-                            line === "" && "h-4",
-                          )}
-                          style={{
-                            opacity: 0,
-                            animation: `fade-in 0.4s ease-out ${i * 0.05}s forwards`,
-                          }}
-                        >
-                          {line || "\u00A0"}
-                        </p>
-                      ))
-                    )}
-                  </div>
-                )}
+                {/* Editable content */}
+                <textarea
+                  ref={contentRef}
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  className="w-full min-h-[200px] font-body text-sm sm:text-base leading-relaxed text-foreground/80 bg-transparent border-none outline-none resize-none placeholder:text-muted-foreground/40"
+                  placeholder="Write your poem here..."
+                />
               </div>
 
               {/* Decorative footer flourish */}
