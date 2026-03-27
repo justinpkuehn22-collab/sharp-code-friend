@@ -79,7 +79,30 @@ export const Index = () => {
         <div
           className="mx-3 sm:mx-5"
           style={{
-            background: "hsl(25, 22%, 15%)",
+            backgroundColor: "hsl(25, 22%, 15%)",
+            backgroundImage: `
+              repeating-linear-gradient(
+                90deg,
+                transparent,
+                transparent 50px,
+                rgba(255,255,255,0.015) 50px,
+                rgba(255,255,255,0.015) 52px
+              ),
+              repeating-linear-gradient(
+                90deg,
+                transparent,
+                transparent 140px,
+                rgba(0,0,0,0.06) 140px,
+                rgba(0,0,0,0.06) 143px
+              ),
+              repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 300px,
+                rgba(255,255,255,0.01) 300px,
+                rgba(255,255,255,0.01) 302px
+              )
+            `,
             boxShadow: "inset 0 2px 8px rgba(0,0,0,0.4), inset 2px 0 4px rgba(0,0,0,0.2), inset -2px 0 4px rgba(0,0,0,0.2)",
           }}
         >

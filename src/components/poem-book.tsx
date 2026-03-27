@@ -116,12 +116,12 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
         <span
           className={cn(
             "absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2",
-            "font-display text-[9px] sm:text-[10px] font-bold",
-            "text-clock-trim/70 whitespace-nowrap",
+            "font-display text-[9px] sm:text-[11px] font-bold",
+            "text-white/90 whitespace-nowrap drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]",
             "rotate-180",
             "transition-all duration-300",
-            "group-hover:text-clock-trim group-hover:text-[11px] sm:group-hover:text-[13px] group-hover:drop-shadow-[0_0_6px_rgba(200,170,100,0.5)]",
-            !hasContent && "italic text-clock-trim/30 text-[8px]",
+            "group-hover:text-white group-hover:text-[11px] sm:group-hover:text-[13px] group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]",
+            !hasContent && "italic text-white/40 text-[8px]",
           )}
           style={{ writingMode: "vertical-rl" }}
         >
