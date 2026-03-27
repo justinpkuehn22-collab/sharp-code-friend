@@ -53,21 +53,86 @@ const useTypewriter = (text: string, speed = 30, active = false) => {
   return { displayed, done };
 };
 
-// Extract line-ending words for rhyme highlighting
-const getEndWords = (text: string): Set<string> => {
-  const lines = text.split("\n").filter((l) => l.trim().length > 0);
-  const endWords = new Set<string>();
-  for (const line of lines) {
-    const words = line.trim().split(/\s+/);
-    const last = words[words.length - 1];
-    if (last) endWords.add(last.replace(/[.,;:!?—"']/g, "").toLowerCase());
-  }
-  return endWords;
+// Rhyme scheme colors — pink & green palette to match bookmarks
+const rhymeColors = [
+  "hsl(345, 50%, 65%)",  // pink
+  "hsl(152, 40%, 55%)",  // green
+  "hsl(330, 45%, 72%)",  // soft rose
+  "hsl(165, 38%, 50%)",  // teal
+  "hsl(350, 55%, 58%)",  // hot pink
+  "hsl(140, 35%, 60%)",  // mint
+  "hsl(10, 50%, 65%)",   // coral
+  "hsl(180, 30%, 55%)",  // cyan-green
+];
+
+// Get the phonetic ending of a word (last 2-3 chars for simple rhyme matching)
+const getEnding = (word: string): string => {
+  const clean = word.replace(/[.,;:!?—"''""]/g, "").toLowerCase();
+  if (clean.length <= 2) return clean;
+  // Use last 3 chars, or 2 for short words
+  return clean.length <= 4 ? clean.slice(-2) : clean.slice(-3);
 };
 
-// Render text with highlighted end-of-line words
+// Group line-ending words by rhyme (similar endings)
+const getRhymeScheme = (text: string): Map<number, number> => {
+  const lines = text.split("\n");
+  const lineEndings: { lineIdx: number; ending: string; word: string }[] = [];
+
+  lines.forEach((line, i) => {
+    const trimmed = line.trim();
+    if (!trimmed) return;
+    const words = trimmed.split(/\s+/);
+    const lastWord = words[words.length - 1];
+    if (lastWord) {
+      lineEndings.push({ lineIdx: i, ending: getEnding(lastWord), word: lastWord });
+    }
+  });
+
+  // Group by similar endings
+  const groups: string[][] = [];
+  const lineToGroup = new Map<number, number>();
+
+  for (const entry of lineEndings) {
+    let foundGroup = -1;
+    for (let g = 0; g < groups.length; g++) {
+      // Check if this ending rhymes with any in the group
+      if (groups[g].some((e) => {
+        if (e === entry.ending) return true;
+        // Match if last 2 chars are the same
+        const a = e.slice(-2);
+        const b = entry.ending.slice(-2);
+        return a.length >= 2 && a === b;
+      })) {
+        foundGroup = g;
+        break;
+      }
+    }
+    if (foundGroup >= 0) {
+      groups[foundGroup].push(entry.ending);
+      lineToGroup.set(entry.lineIdx, foundGroup);
+    } else {
+      groups.push([entry.ending]);
+      lineToGroup.set(entry.lineIdx, groups.length - 1);
+    }
+  }
+
+  // Only color groups with 2+ members (actual rhymes)
+  const result = new Map<number, number>();
+  const groupCounts = new Map<number, number>();
+  for (const [, g] of lineToGroup) {
+    groupCounts.set(g, (groupCounts.get(g) || 0) + 1);
+  }
+  for (const [line, g] of lineToGroup) {
+    if ((groupCounts.get(g) || 0) >= 2) {
+      result.set(line, g);
+    }
+  }
+  return result;
+};
+
+// Render text with rhyme-scheme colored end words
 const HighlightedPoem = ({ text }: { text: string }) => {
-  const endWords = useMemo(() => getEndWords(text), [text]);
+  const rhymeScheme = useMemo(() => getRhymeScheme(text), [text]);
 
   const lines = text.split("\n");
   return (
@@ -75,7 +140,6 @@ const HighlightedPoem = ({ text }: { text: string }) => {
       {lines.map((line, li) => {
         if (line.trim() === "") return <br key={li} />;
         const words = line.split(/(\s+)/);
-        // Find the last actual word in the line
         let lastWordIdx = -1;
         for (let j = words.length - 1; j >= 0; j--) {
           if (words[j].trim().length > 0) {
@@ -83,18 +147,20 @@ const HighlightedPoem = ({ text }: { text: string }) => {
             break;
           }
         }
+        const rhymeGroup = rhymeScheme.get(li);
         return (
           <span key={li}>
             {words.map((word, wi) => {
-              const clean = word.replace(/[.,;:!?—"']/g, "").toLowerCase();
-              const isEndWord = wi === lastWordIdx && endWords.has(clean);
+              const isEndWord = wi === lastWordIdx && rhymeGroup !== undefined;
               if (isEndWord) {
+                const color = rhymeColors[rhymeGroup! % rhymeColors.length];
                 return (
                   <span
                     key={wi}
-                    className="text-primary font-semibold"
+                    className="font-semibold transition-colors duration-300"
                     style={{
-                      textShadow: "0 0 12px hsl(345, 40%, 65%, 0.3)",
+                      color,
+                      textShadow: `0 0 14px ${color}40`,
                     }}
                   >
                     {word}
@@ -349,11 +415,25 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
                       </div>
                     )}
 
-                    {/* Edit hint */}
+                    {/* Signature + edit hint */}
                     {contentTypewriter.done && (
-                      <p className="mt-10 text-center text-xs animate-fade-in" style={{ color: "hsl(34, 20%, 35%)" }}>
-                        tap to edit
-                      </p>
+                      <div className="mt-12 animate-fade-in">
+                        {/* JK Signature */}
+                        <p
+                          className="text-right text-2xl sm:text-3xl"
+                          style={{
+                            fontFamily: "'Dancing Script', cursive",
+                            color: "hsl(38, 55%, 55%)",
+                            textShadow: "0 0 10px hsl(38, 55%, 50%, 0.15)",
+                            letterSpacing: "0.02em",
+                          }}
+                        >
+                          — JK
+                        </p>
+                        <p className="mt-6 text-center text-xs" style={{ color: "hsl(34, 20%, 35%)" }}>
+                          tap to edit
+                        </p>
+                      </div>
                     )}
                   </div>
                 )}
