@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 import type { Poem } from "@/data/poems";
 import { usePoemStore } from "@/stores/poem-store";
@@ -93,8 +94,8 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
         <div className="absolute inset-0 rounded-t-sm rounded-b-md bg-primary/0 group-hover:bg-primary/10 transition-colors duration-300" />
       </button>
 
-      {/* Open poem overlay — double-click backdrop or paper to close */}
-      {isOpen && (
+      {/* Open poem overlay via portal */}
+      {isOpen && createPortal(
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8"
           onDoubleClick={handleClose}
@@ -105,9 +106,7 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
           <div className="absolute inset-0 bg-foreground/30 backdrop-blur-sm animate-fade-in pointer-events-none" />
 
           {/* Paper document */}
-          <div
-            className="relative z-10 max-w-lg w-full origin-center animate-paper-unfold"
-          >
+          <div className="relative z-10 max-w-lg w-full origin-center animate-paper-unfold">
             {/* Paper curl / shadow effect */}
             <div className="absolute -bottom-2 left-4 right-4 h-4 bg-foreground/10 rounded-b-lg blur-md" />
 
@@ -160,7 +159,8 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
               <div className="h-1 bg-gradient-to-r from-book-paper-edge via-book-paper to-book-paper-edge" />
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );
