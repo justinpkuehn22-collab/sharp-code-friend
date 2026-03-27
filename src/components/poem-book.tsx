@@ -354,7 +354,7 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
         >
           <div className="absolute inset-0 bg-black/80 backdrop-blur-lg animate-fade-in pointer-events-none" />
 
-          <div className="relative z-10 max-w-xl w-full animate-typewriter-roll">
+          <div className="relative z-10 max-w-xl w-full max-h-[85vh] flex flex-col animate-typewriter-roll">
             {/* Close */}
             <button
               onClick={handleClose}
@@ -379,7 +379,7 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
 
             {/* Elegant dark paper */}
             <div
-              className="relative rounded-md overflow-hidden"
+              className="relative rounded-md overflow-hidden flex flex-col min-h-0"
               style={{
                 backgroundColor: "hsl(30, 10%, 8%)",
                 boxShadow: "0 30px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05) inset",
@@ -389,7 +389,7 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
               <div className="h-[2px]" style={{ background: "linear-gradient(90deg, transparent, hsl(38, 55%, 50%), transparent)" }} />
 
               {/* Content */}
-              <div className="px-10 sm:px-14 py-10 sm:py-14">
+              <div className="px-10 sm:px-14 py-10 sm:py-14 overflow-y-auto flex-1 min-h-0">
                 {isEditing ? (
                   <>
                     <input
