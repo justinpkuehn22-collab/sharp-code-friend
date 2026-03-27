@@ -1,15 +1,14 @@
 import { usePoemStore } from "@/stores/poem-store";
 import { PoemBook } from "@/components/poem-book";
 import { GrandfatherClock } from "@/components/grandfather-clock";
-
-const BOOKS_PER_SHELF = [7, 6, 7, 6];
+import { Plus } from "lucide-react";
 
 export const Index = () => {
-  const { poems } = usePoemStore();
+  const { poems, shelfSizes, addShelf } = usePoemStore();
 
   const shelves: typeof poems[] = [];
   let offset = 0;
-  for (const count of BOOKS_PER_SHELF) {
+  for (const count of shelfSizes) {
     shelves.push(poems.slice(offset, offset + count));
     offset += count;
   }
