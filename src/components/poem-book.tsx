@@ -106,9 +106,7 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
 
           {/* Paper document */}
           <div
-            className={cn(
-              "relative z-10 max-w-lg w-full animate-paper-unfold",
-            )}
+            className="relative z-10 max-w-lg w-full origin-center animate-paper-unfold"
           >
             {/* Paper curl / shadow effect */}
             <div className="absolute -bottom-2 left-4 right-4 h-4 bg-foreground/10 rounded-b-lg blur-md" />
