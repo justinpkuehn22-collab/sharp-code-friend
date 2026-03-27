@@ -379,7 +379,7 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
 
             {/* Elegant dark paper */}
             <div
-              className="relative rounded-md overflow-hidden"
+              className="relative rounded-md overflow-hidden flex flex-col min-h-0"
               style={{
                 backgroundColor: "hsl(30, 10%, 8%)",
                 boxShadow: "0 30px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05) inset",
