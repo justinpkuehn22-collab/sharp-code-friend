@@ -16,53 +16,83 @@ export const Index = () => {
 
   return (
     <div
-      className="min-h-screen overflow-y-auto"
+      className="min-h-screen overflow-y-auto flex justify-center py-10 px-4"
       style={{
-        backgroundColor: "hsl(25, 30%, 18%)",
+        backgroundColor: "hsl(30, 8%, 82%)",
         backgroundImage: `
-          repeating-linear-gradient(
-            90deg,
-            transparent,
-            transparent 60px,
-            rgba(0,0,0,0.06) 60px,
-            rgba(0,0,0,0.06) 62px
-          ),
-          repeating-linear-gradient(
-            90deg,
-            transparent,
-            transparent 180px,
-            rgba(0,0,0,0.08) 180px,
-            rgba(0,0,0,0.08) 184px
-          ),
-          repeating-linear-gradient(
-            0deg,
-            transparent,
-            transparent 400px,
-            rgba(255,255,255,0.02) 400px,
-            rgba(255,255,255,0.02) 402px
-          ),
-          linear-gradient(
-            180deg,
-            rgba(0,0,0,0.15) 0%,
-            transparent 5%,
-            transparent 95%,
-            rgba(0,0,0,0.2) 100%
-          )
+          radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.3) 0%, transparent 60%),
+          radial-gradient(ellipse at 50% 100%, rgba(0,0,0,0.08) 0%, transparent 50%)
         `,
       }}
     >
-      <div className="relative max-w-3xl mx-auto px-2 sm:px-6 py-8">
-        {/* Grandfather Clock */}
-        <div className="flex justify-center mb-12 animate-fade-in">
-          <GrandfatherClock />
-        </div>
+      {/* The bookshelf — a piece of furniture */}
+      <div
+        className="relative w-full max-w-3xl"
+        style={{
+          background: `
+            linear-gradient(
+              180deg,
+              hsl(25, 30%, 20%) 0%,
+              hsl(25, 28%, 17%) 100%
+            )
+          `,
+          backgroundImage: `
+            linear-gradient(180deg, hsl(25, 30%, 20%) 0%, hsl(25, 28%, 17%) 100%),
+            repeating-linear-gradient(
+              90deg,
+              transparent,
+              transparent 55px,
+              rgba(0,0,0,0.05) 55px,
+              rgba(0,0,0,0.05) 57px
+            ),
+            repeating-linear-gradient(
+              90deg,
+              transparent,
+              transparent 160px,
+              rgba(0,0,0,0.07) 160px,
+              rgba(0,0,0,0.07) 163px
+            )
+          `,
+          borderRadius: "4px 4px 6px 6px",
+          boxShadow: `
+            8px 8px 24px rgba(0,0,0,0.4),
+            -8px 8px 24px rgba(0,0,0,0.4),
+            0 2px 0 rgba(255,255,255,0.05) inset,
+            0 -2px 0 rgba(0,0,0,0.3) inset,
+            3px 0 0 rgba(255,255,255,0.03) inset,
+            -3px 0 0 rgba(255,255,255,0.03) inset
+          `,
+          border: "3px solid hsl(25, 25%, 14%)",
+        }}
+      >
+        {/* Top crown molding */}
+        <div
+          className="h-5 rounded-t-sm"
+          style={{
+            background: "linear-gradient(180deg, hsl(25, 30%, 28%), hsl(25, 28%, 20%))",
+            borderBottom: "2px solid hsl(25, 20%, 12%)",
+            boxShadow: "0 2px 4px rgba(0,0,0,0.3) inset, 0 -1px 0 rgba(255,255,255,0.08) inset",
+          }}
+        />
 
-        {/* Shelves */}
-        <div className="space-y-20">
+        {/* Inner back panel — slightly lighter to show depth */}
+        <div
+          className="mx-3 sm:mx-5"
+          style={{
+            background: "hsl(25, 22%, 15%)",
+            boxShadow: "inset 0 2px 8px rgba(0,0,0,0.4), inset 2px 0 4px rgba(0,0,0,0.2), inset -2px 0 4px rgba(0,0,0,0.2)",
+          }}
+        >
+          {/* Grandfather Clock */}
+          <div className="flex justify-center pt-8 pb-4 animate-fade-in">
+            <GrandfatherClock />
+          </div>
+
+          {/* Shelves */}
           {shelves.map((shelfBooks, shelfIdx) => (
             <div key={shelfIdx} className="relative">
               {/* Books row */}
-              <div className="flex items-end justify-center gap-2 sm:gap-3 px-4 sm:px-8 pb-0">
+              <div className="flex items-end justify-center gap-2 sm:gap-3 px-6 sm:px-10 pb-0 pt-8">
                 {shelfBooks.map((poem, i) => {
                   const globalIdx = BOOKS_PER_SHELF.slice(0, shelfIdx).reduce((a, b) => a + b, 0) + i;
                   return (
@@ -77,94 +107,60 @@ export const Index = () => {
                 })}
               </div>
 
-              {/* Layered wooden shelf */}
+              {/* Shelf plank */}
               <div className="relative">
-                {/* Top surface — lightest, with wood grain lines */}
-                <div
-                  className="h-5 rounded-sm shadow-lg relative overflow-hidden"
-                  style={{
-                    backgroundColor: "hsl(var(--shelf-plank-face))",
-                    backgroundImage: `
-                      repeating-linear-gradient(
-                        90deg,
-                        transparent,
-                        transparent 40px,
-                        rgba(0,0,0,0.03) 40px,
-                        rgba(0,0,0,0.03) 42px
-                      ),
-                      repeating-linear-gradient(
-                        90deg,
-                        transparent,
-                        transparent 120px,
-                        rgba(0,0,0,0.05) 120px,
-                        rgba(0,0,0,0.05) 123px
-                      )
-                    `,
-                  }}
-                >
-                  {/* Highlight along top edge */}
-                  <div className="absolute inset-x-0 top-0 h-[2px] bg-shelf-highlight/30" />
-                </div>
-
-                {/* Front face of plank — medium tone */}
+                {/* Top surface */}
                 <div
                   className="h-4 relative overflow-hidden"
                   style={{
-                    backgroundColor: "hsl(var(--shelf-plank))",
+                    background: "linear-gradient(180deg, hsl(30, 30%, 50%), hsl(28, 28%, 42%))",
                     backgroundImage: `
-                      repeating-linear-gradient(
-                        0deg,
-                        transparent,
-                        transparent 3px,
-                        rgba(0,0,0,0.04) 3px,
-                        rgba(0,0,0,0.04) 4px
-                      )
+                      linear-gradient(180deg, hsl(30, 30%, 50%), hsl(28, 28%, 42%)),
+                      repeating-linear-gradient(90deg, transparent, transparent 45px, rgba(0,0,0,0.04) 45px, rgba(0,0,0,0.04) 47px)
                     `,
                   }}
                 >
-                  {/* Shadow under top lip */}
-                  <div className="absolute inset-x-0 top-0 h-[3px] bg-black/10" />
+                  <div className="absolute inset-x-0 top-0 h-[1px] bg-white/10" />
                 </div>
-
-                {/* Bottom edge / underside shadow */}
-                <div className="h-2 bg-shelf-plank-dark rounded-b-sm" />
-
-                {/* Drop shadow below shelf */}
-                <div className="absolute -bottom-3 inset-x-2 h-3 bg-black/15 blur-sm rounded-full" />
-
-                {/* Brackets */}
-                <div className="absolute -bottom-8 left-10 sm:left-14">
-                  <div
-                    className="w-4 h-8 rounded-b-sm shadow-md"
-                    style={{
-                      backgroundColor: "hsl(var(--shelf-bracket))",
-                      backgroundImage: "linear-gradient(to right, rgba(255,255,255,0.05), transparent, rgba(0,0,0,0.1))",
-                    }}
-                  />
-                </div>
-                <div className="absolute -bottom-8 right-10 sm:right-14">
-                  <div
-                    className="w-4 h-8 rounded-b-sm shadow-md"
-                    style={{
-                      backgroundColor: "hsl(var(--shelf-bracket))",
-                      backgroundImage: "linear-gradient(to right, rgba(255,255,255,0.05), transparent, rgba(0,0,0,0.1))",
-                    }}
-                  />
-                </div>
+                {/* Front face */}
+                <div
+                  className="h-3"
+                  style={{
+                    background: "linear-gradient(180deg, hsl(28, 28%, 38%), hsl(25, 25%, 32%))",
+                    boxShadow: "inset 0 1px 0 rgba(0,0,0,0.2)",
+                  }}
+                />
+                {/* Bottom lip shadow */}
+                <div className="h-1" style={{ background: "hsl(25, 22%, 15%)", boxShadow: "0 4px 8px rgba(0,0,0,0.3)" }} />
               </div>
             </div>
           ))}
+
+          {/* Bottom interior padding */}
+          <div className="h-8" />
         </div>
 
-        {/* Footer */}
-        <footer
-          className="mt-24 pb-8 text-center opacity-0 animate-fade-in"
-          style={{ animationDelay: "2s" }}
-        >
-          <p className="font-body text-sm text-shelf-highlight/60">
-            Written with love & a little bit of ink ✦
-          </p>
-        </footer>
+        {/* Bottom base molding */}
+        <div
+          className="h-6 rounded-b-sm"
+          style={{
+            background: "linear-gradient(180deg, hsl(25, 28%, 20%), hsl(25, 30%, 24%))",
+            borderTop: "2px solid hsl(25, 20%, 12%)",
+            boxShadow: "0 -2px 4px rgba(0,0,0,0.3) inset, 0 1px 0 rgba(255,255,255,0.06) inset",
+          }}
+        />
+
+        {/* Furniture feet */}
+        <div className="flex justify-between px-6">
+          <div
+            className="w-8 h-3 rounded-b-md"
+            style={{ background: "hsl(25, 25%, 16%)", boxShadow: "0 3px 6px rgba(0,0,0,0.4)" }}
+          />
+          <div
+            className="w-8 h-3 rounded-b-md"
+            style={{ background: "hsl(25, 25%, 16%)", boxShadow: "0 3px 6px rgba(0,0,0,0.4)" }}
+          />
+        </div>
       </div>
     </div>
   );
