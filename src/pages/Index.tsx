@@ -15,7 +15,42 @@ export const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-shelf-wood overflow-y-auto">
+    <div
+      className="min-h-screen overflow-y-auto"
+      style={{
+        backgroundColor: "hsl(25, 30%, 18%)",
+        backgroundImage: `
+          repeating-linear-gradient(
+            90deg,
+            transparent,
+            transparent 60px,
+            rgba(0,0,0,0.06) 60px,
+            rgba(0,0,0,0.06) 62px
+          ),
+          repeating-linear-gradient(
+            90deg,
+            transparent,
+            transparent 180px,
+            rgba(0,0,0,0.08) 180px,
+            rgba(0,0,0,0.08) 184px
+          ),
+          repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 400px,
+            rgba(255,255,255,0.02) 400px,
+            rgba(255,255,255,0.02) 402px
+          ),
+          linear-gradient(
+            180deg,
+            rgba(0,0,0,0.15) 0%,
+            transparent 5%,
+            transparent 95%,
+            rgba(0,0,0,0.2) 100%
+          )
+        `,
+      }}
+    >
       <div className="relative max-w-3xl mx-auto px-2 sm:px-6 py-8">
         {/* Grandfather Clock */}
         <div className="flex justify-center mb-12 animate-fade-in">
