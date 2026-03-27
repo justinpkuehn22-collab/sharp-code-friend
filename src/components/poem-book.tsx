@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 import type { Poem } from "@/data/poems";
 import { usePoemStore } from "@/stores/poem-store";
-import { X } from "lucide-react";
+import { X, Trash2 } from "lucide-react";
 
 interface PoemBookProps {
   poem: Poem;
@@ -193,7 +193,14 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
   const [editTitle, setEditTitle] = useState(poem.title);
   const [editContent, setEditContent] = useState(poem.content);
   const contentRef = useRef<HTMLTextAreaElement>(null);
-  const { updatePoem } = usePoemStore();
+  const { updatePoem, deletePoem } = usePoemStore();
+
+  const handleDelete = () => {
+    if (window.confirm(`Remove "${poem.title}" from your shelf?`)) {
+      setIsOpen(false);
+      deletePoem(poem.id);
+    }
+  };
 
   const hasContent = poem.content.trim() !== "";
 
