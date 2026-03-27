@@ -134,6 +134,11 @@ export default {
           "0%, 100%": { transform: "translateY(0)" },
           "50%": { transform: "translateY(-6px)" },
         },
+        "pendulum": {
+          "0%": { transform: "rotate(15deg)" },
+          "50%": { transform: "rotate(-15deg)" },
+          "100%": { transform: "rotate(15deg)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -144,6 +149,7 @@ export default {
         "paper-content": "paper-content 0.4s ease-out 0.35s forwards",
         "page-turn": "page-turn 0.4s ease-out forwards",
         "float": "float 3s ease-in-out infinite",
+        "pendulum": "pendulum 2s ease-in-out infinite",
       },
     },
   },
