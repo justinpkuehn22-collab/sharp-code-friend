@@ -116,7 +116,7 @@ export const Index = () => {
               {/* Books row */}
               <div className="flex items-end justify-center gap-2 sm:gap-3 px-6 sm:px-10 pb-0 pt-8">
                 {shelfBooks.map((poem, i) => {
-                  const globalIdx = BOOKS_PER_SHELF.slice(0, shelfIdx).reduce((a, b) => a + b, 0) + i;
+                  const globalIdx = shelfSizes.slice(0, shelfIdx).reduce((a, b) => a + b, 0) + i;
                   return (
                     <div
                       key={poem.id}
