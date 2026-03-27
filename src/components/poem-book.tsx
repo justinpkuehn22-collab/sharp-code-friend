@@ -460,7 +460,7 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
                         }}
                       >
                         {contentTypewriter.done ? (
-                          <HighlightedPoem text={poem.content} />
+                          poem.content
                         ) : (
                           <>
                             {contentTypewriter.displayed}
