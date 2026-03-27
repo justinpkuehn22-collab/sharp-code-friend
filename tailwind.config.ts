@@ -59,6 +59,22 @@ export default {
           "paper-edge": "hsl(var(--book-paper-edge))",
           "paper-line": "hsl(var(--book-paper-line))",
         },
+        shelf: {
+          plank: "hsl(var(--shelf-plank))",
+          "plank-dark": "hsl(var(--shelf-plank-dark))",
+          highlight: "hsl(var(--shelf-highlight))",
+          bracket: "hsl(var(--shelf-bracket))",
+        },
+        clock: {
+          wood: "hsl(var(--clock-wood))",
+          "wood-dark": "hsl(var(--clock-wood-dark))",
+          face: "hsl(var(--clock-face))",
+          bezel: "hsl(var(--clock-bezel))",
+          hand: "hsl(var(--clock-hand))",
+          numeral: "hsl(var(--clock-numeral))",
+          trim: "hsl(var(--clock-trim))",
+          accent: "hsl(var(--clock-accent))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
