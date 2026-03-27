@@ -59,6 +59,22 @@ export default {
           "paper-edge": "hsl(var(--book-paper-edge))",
           "paper-line": "hsl(var(--book-paper-line))",
         },
+        shelf: {
+          plank: "hsl(var(--shelf-plank))",
+          "plank-dark": "hsl(var(--shelf-plank-dark))",
+          highlight: "hsl(var(--shelf-highlight))",
+          bracket: "hsl(var(--shelf-bracket))",
+        },
+        clock: {
+          wood: "hsl(var(--clock-wood))",
+          "wood-dark": "hsl(var(--clock-wood-dark))",
+          face: "hsl(var(--clock-face))",
+          bezel: "hsl(var(--clock-bezel))",
+          hand: "hsl(var(--clock-hand))",
+          numeral: "hsl(var(--clock-numeral))",
+          trim: "hsl(var(--clock-trim))",
+          accent: "hsl(var(--clock-accent))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -118,6 +134,11 @@ export default {
           "0%, 100%": { transform: "translateY(0)" },
           "50%": { transform: "translateY(-6px)" },
         },
+        "pendulum": {
+          "0%": { transform: "rotate(15deg)" },
+          "50%": { transform: "rotate(-15deg)" },
+          "100%": { transform: "rotate(15deg)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -128,6 +149,7 @@ export default {
         "paper-content": "paper-content 0.4s ease-out 0.35s forwards",
         "page-turn": "page-turn 0.4s ease-out forwards",
         "float": "float 3s ease-in-out infinite",
+        "pendulum": "pendulum 2s ease-in-out infinite",
       },
     },
   },
