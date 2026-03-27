@@ -1,15 +1,14 @@
 import { usePoemStore } from "@/stores/poem-store";
 import { PoemBook } from "@/components/poem-book";
 import { GrandfatherClock } from "@/components/grandfather-clock";
-
-const BOOKS_PER_SHELF = [7, 6, 7, 6];
+import { Plus } from "lucide-react";
 
 export const Index = () => {
-  const { poems } = usePoemStore();
+  const { poems, shelfSizes, addShelf } = usePoemStore();
 
   const shelves: typeof poems[] = [];
   let offset = 0;
-  for (const count of BOOKS_PER_SHELF) {
+  for (const count of shelfSizes) {
     shelves.push(poems.slice(offset, offset + count));
     offset += count;
   }
@@ -117,7 +116,7 @@ export const Index = () => {
               {/* Books row */}
               <div className="flex items-end justify-center gap-2 sm:gap-3 px-6 sm:px-10 pb-0 pt-8">
                 {shelfBooks.map((poem, i) => {
-                  const globalIdx = BOOKS_PER_SHELF.slice(0, shelfIdx).reduce((a, b) => a + b, 0) + i;
+                  const globalIdx = shelfSizes.slice(0, shelfIdx).reduce((a, b) => a + b, 0) + i;
                   return (
                     <div
                       key={poem.id}
@@ -159,8 +158,20 @@ export const Index = () => {
             </div>
           ))}
 
-          {/* Bottom interior padding */}
-          <div className="h-8" />
+          {/* Add shelf button */}
+          <div className="flex justify-center pt-10 pb-6">
+            <button
+              onClick={addShelf}
+              className="group w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95"
+              style={{
+                background: "linear-gradient(135deg, hsl(38, 55%, 45%), hsl(38, 50%, 35%))",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.15)",
+              }}
+              aria-label="Add new shelf"
+            >
+              <Plus size={22} className="text-white/80 group-hover:text-white transition-colors" />
+            </button>
+          </div>
         </div>
 
         {/* Bottom base molding */}
