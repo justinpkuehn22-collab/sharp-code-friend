@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { X } from "lucide-react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 import type { Poem } from "@/data/poems";
@@ -148,14 +149,23 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
       {isOpen && createPortal(
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8"
-          onDoubleClick={handleClose}
+          onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
           role="dialog"
           aria-modal="true"
         >
-          <div className="absolute inset-0 bg-foreground/30 backdrop-blur-sm animate-fade-in pointer-events-none" />
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in pointer-events-none" />
 
           <div className="relative z-10 max-w-lg w-full origin-center animate-paper-unfold">
             <div className="absolute -bottom-2 left-4 right-4 h-4 bg-foreground/10 rounded-b-lg blur-md" />
+
+            {/* Close button */}
+            <button
+              onClick={handleClose}
+              className="absolute -top-3 -right-3 z-20 w-8 h-8 rounded-full bg-foreground/80 text-background flex items-center justify-center shadow-lg hover:bg-foreground transition-colors duration-200 hover:scale-110 active:scale-95"
+              aria-label="Close poem"
+            >
+              <X size={16} />
+            </button>
 
             <div className="relative bg-book-paper border border-book-paper-edge rounded-sm shadow-xl overflow-hidden">
               <div className="h-1 bg-gradient-to-r from-book-paper-edge via-book-paper to-book-paper-edge" />
@@ -167,9 +177,6 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
               </div>
 
               <div className="px-8 sm:px-12 pb-8 opacity-0 animate-paper-content">
-                <p className="text-right text-[10px] text-muted-foreground/60 mb-4 font-body select-none">
-                  double-click to close
-                </p>
 
                 <input
                   value={editTitle}
