@@ -63,6 +63,7 @@ export default {
           wood: "hsl(var(--shelf-wood))",
           plank: "hsl(var(--shelf-plank))",
           "plank-dark": "hsl(var(--shelf-plank-dark))",
+          "plank-face": "hsl(var(--shelf-plank-face))",
           highlight: "hsl(var(--shelf-highlight))",
           bracket: "hsl(var(--shelf-bracket))",
         },
