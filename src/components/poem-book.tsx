@@ -354,7 +354,7 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
         >
           <div className="absolute inset-0 bg-black/80 backdrop-blur-lg animate-fade-in pointer-events-none" />
 
-          <div className="relative z-10 max-w-xl w-full animate-typewriter-roll">
+          <div className="relative z-10 max-w-xl w-full max-h-[85vh] flex flex-col animate-typewriter-roll">
             {/* Close */}
             <button
               onClick={handleClose}
