@@ -389,7 +389,7 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
               <div className="h-[2px]" style={{ background: "linear-gradient(90deg, transparent, hsl(38, 55%, 50%), transparent)" }} />
 
               {/* Content */}
-              <div className="px-10 sm:px-14 py-10 sm:py-14">
+              <div className="px-10 sm:px-14 py-10 sm:py-14 overflow-y-auto flex-1 min-h-0">
                 {isEditing ? (
                   <>
                     <input
