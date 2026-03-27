@@ -49,7 +49,10 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
     <>
       {/* Book on shelf */}
       <button
-        onClick={handleOpen}
+        onClick={(e) => {
+          e.stopPropagation();
+          handleOpen();
+        }}
         className={cn(
           "book-spine group relative flex flex-col items-center justify-end",
           "rounded-t-sm rounded-b-md shadow-md",
