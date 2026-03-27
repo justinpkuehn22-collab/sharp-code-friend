@@ -11,6 +11,7 @@ const createBlankPoem = (id: string, title: string): Poem => ({
 });
 
 export const defaultPoems: Poem[] = [
+  // Shelf 1
   {
     id: "morning-light",
     title: "Morning light",
@@ -48,11 +49,29 @@ export const defaultPoems: Poem[] = [
       "They grow in the cracks of things—\nsidewalks, fences, the space\nbetween what happened\nand what we hoped for.\n\nNobody plants them.\nThat's the whole point.",
   },
   createBlankPoem("poem-7", "Untitled"),
+
+  // Shelf 2
   createBlankPoem("poem-8", "Untitled"),
   createBlankPoem("poem-9", "Untitled"),
   createBlankPoem("poem-10", "Untitled"),
   createBlankPoem("poem-11", "Untitled"),
   createBlankPoem("poem-12", "Untitled"),
   createBlankPoem("poem-13", "Untitled"),
+
+  // Shelf 3
   createBlankPoem("poem-14", "Untitled"),
+  createBlankPoem("poem-15", "Untitled"),
+  createBlankPoem("poem-16", "Untitled"),
+  createBlankPoem("poem-17", "Untitled"),
+  createBlankPoem("poem-18", "Untitled"),
+  createBlankPoem("poem-19", "Untitled"),
+  createBlankPoem("poem-20", "Untitled"),
+
+  // Shelf 4
+  createBlankPoem("poem-21", "Untitled"),
+  createBlankPoem("poem-22", "Untitled"),
+  createBlankPoem("poem-23", "Untitled"),
+  createBlankPoem("poem-24", "Untitled"),
+  createBlankPoem("poem-25", "Untitled"),
+  createBlankPoem("poem-26", "Untitled"),
 ];

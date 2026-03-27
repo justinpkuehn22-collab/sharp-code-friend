@@ -60,6 +60,7 @@ export default {
           "paper-line": "hsl(var(--book-paper-line))",
         },
         shelf: {
+          wood: "hsl(var(--shelf-wood))",
           plank: "hsl(var(--shelf-plank))",
           "plank-dark": "hsl(var(--shelf-plank-dark))",
           highlight: "hsl(var(--shelf-highlight))",
