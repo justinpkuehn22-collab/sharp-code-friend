@@ -45,6 +45,14 @@ Deno.serve(async (req) => {
       return json({ error: "Invalid body" }, 400);
     }
     const b = body as { poems: unknown[]; shelfSizes: unknown[] };
+    // Backup-only mode: store a browser's local copy without changing the shelf
+    if (new URL(req.url).searchParams.get("backup") === "1") {
+      const { error: backupError } = await supabase
+        .from("shelf_history")
+        .insert({ poems: b.poems, shelf_sizes: b.shelfSizes });
+      if (backupError) return json({ error: backupError.message }, 500);
+      return json({ ok: true });
+    }
     // Keep a copy of the previous version so nothing can ever be lost
     const { data: prev } = await supabase
       .from("shelf_state")

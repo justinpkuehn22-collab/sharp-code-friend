@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { usePoemStore } from "@/stores/poem-store";
-import { fetchShelf, saveShelf, WrongPasswordError } from "@/services/shelf-service";
+import { backupShelf, countWritten, fetchShelf, saveShelf, WrongPasswordError } from "@/services/shelf-service";
 
 const storageKey = "poetry-shelf-password";
 
@@ -18,12 +18,16 @@ export const PasswordGate = ({ children }: { children: ReactNode }) => {
     fetchShelf(password)
       .then(async (remote) => {
         if (cancelled) return;
-        if (remote) {
+        const local = usePoemStore.getState();
+        const localState = { poems: local.poems, shelfSizes: local.shelfSizes };
+        // Always keep a copy of this browser's poems before anything changes
+        localStorage.setItem(`poetry-shelf-local-backup-${Date.now()}`, JSON.stringify(localState));
+        await backupShelf(password, localState).catch(() => undefined);
+        if (remote && countWritten(remote.poems) >= countWritten(local.poems)) {
           usePoemStore.setState({ poems: remote.poems, shelfSizes: remote.shelfSizes });
         } else {
-          // First time online: upload what's in this browser
-          const { poems, shelfSizes } = usePoemStore.getState();
-          await saveShelf(password, { poems, shelfSizes });
+          // This browser has more writing than the online shelf: keep it and save it online
+          await saveShelf(password, localState);
         }
         localStorage.setItem(storageKey, password);
         loaded.current = true;
