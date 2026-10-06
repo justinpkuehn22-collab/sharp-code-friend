@@ -1,10 +1,12 @@
 import { usePoemStore } from "@/stores/poem-store";
 import { PoemBook } from "@/components/poem-book";
 import { GrandfatherClock } from "@/components/grandfather-clock";
-import { Plus, Minus } from "lucide-react";
+import { Plus, Minus, Copy, ClipboardPaste } from "lucide-react";
+import { toast } from "sonner";
+import { copyText, poemsToText, textToPoems } from "@/lib/poem-clipboard";
 
 export const Index = () => {
-  const { poems, shelfSizes, addShelf, deleteShelf } = usePoemStore();
+  const { poems, shelfSizes, addShelf, deleteShelf, importPoems } = usePoemStore();
 
   const shelves: typeof poems[] = [];
   let offset = 0;
@@ -172,7 +174,39 @@ export const Index = () => {
           ))}
 
           {/* Add shelf button */}
-          <div className="flex justify-center pt-6 pb-4">
+          <div className="flex justify-center items-center gap-3 pt-6 pb-4">
+            <button
+              onClick={() => {
+                copyText(poemsToText(poems))
+                  .then(() => toast.success("All your poems are copied. Paste them anywhere to save or share."))
+                  .catch(() => toast.error("Couldn't copy your poems. Please try again."));
+              }}
+              className="flex items-center gap-1.5 rounded-full px-3 h-7 text-xs font-semibold bg-secondary text-secondary-foreground opacity-70 hover:opacity-100 transition-opacity"
+              aria-label="Copy all poems"
+            >
+              <Copy size={12} /> Copy all
+            </button>
+            <button
+              onClick={async () => {
+                let text = "";
+                try {
+                  text = await navigator.clipboard.readText();
+                } catch {
+                  text = window.prompt("Paste your poems here:") ?? "";
+                }
+                const items = textToPoems(text);
+                if (items.length === 0) {
+                  toast.error("Nothing to paste. Copy some poems first.");
+                  return;
+                }
+                importPoems(items);
+                toast.success(`Added ${items.length} ${items.length === 1 ? "poem" : "poems"} to a new shelf.`);
+              }}
+              className="flex items-center gap-1.5 rounded-full px-3 h-7 text-xs font-semibold bg-primary text-primary-foreground opacity-70 hover:opacity-100 transition-opacity"
+              aria-label="Paste poems"
+            >
+              <ClipboardPaste size={12} /> Paste
+            </button>
             <button
               onClick={addShelf}
               className="group w-7 h-7 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-125 active:scale-95 opacity-40 hover:opacity-80"

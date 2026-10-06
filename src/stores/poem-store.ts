@@ -10,6 +10,7 @@ interface PoemStore {
   deletePoem: (id: string) => void;
   deleteShelf: (shelfIdx: number) => void;
   addShelf: () => void;
+  importPoems: (items: Array<Pick<Poem, "title" | "content">>) => void;
 }
 
 let nextId = 100;
@@ -63,6 +64,21 @@ export const usePoemStore = create<PoemStore>()(
           return {
             poems: newPoems,
             shelfSizes: newSizes.length > 0 ? newSizes : [0],
+          };
+        }),
+      importPoems: (items) =>
+        set((state) => {
+          if (items.length === 0) return state;
+          const newPoems: Poem[] = items.map((item, i) => ({
+            id: `poem-${nextId++}-${Date.now()}-${i}`,
+            title: item.title,
+            content: item.content,
+          }));
+          const sizes: number[] = [];
+          for (let i = 0; i < newPoems.length; i += 6) sizes.push(Math.min(6, newPoems.length - i));
+          return {
+            poems: [...state.poems, ...newPoems],
+            shelfSizes: [...state.shelfSizes.filter((s) => s > 0), ...sizes],
           };
         }),
       addShelf: () =>
