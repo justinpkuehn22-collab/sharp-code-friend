@@ -14,7 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      shelf_state: {
+        Row: {
+          id: number
+          poems: Json
+          shelf_sizes: Json
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          poems?: Json
+          shelf_sizes?: Json
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          poems?: Json
+          shelf_sizes?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
