@@ -35,3 +35,16 @@ export const saveShelf = async (password: string, state: ShelfState): Promise<vo
   });
   if (!res.ok) throw new Error("Could not save the shelf");
 };
+
+// Stores a copy in the backup history without touching the live shelf
+export const backupShelf = async (password: string, state: ShelfState): Promise<void> => {
+  const res = await fetch(`${baseUrl}?backup=1`, {
+    method: "POST",
+    headers: headers(password),
+    body: JSON.stringify(state),
+  });
+  if (!res.ok) throw new Error("Could not back up the shelf");
+};
+
+export const countWritten = (poems: Poem[]): number =>
+  poems.filter((p) => p.content.trim() !== "").length;
