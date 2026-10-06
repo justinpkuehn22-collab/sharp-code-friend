@@ -3,7 +3,9 @@ import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 import type { Poem } from "@/data/poems";
 import { usePoemStore } from "@/stores/poem-store";
-import { X, Trash2 } from "lucide-react";
+import { X, Trash2, Copy } from "lucide-react";
+import { toast } from "sonner";
+import { copyText, poemToText } from "@/lib/poem-clipboard";
 
 interface PoemBookProps {
   poem: Poem;
@@ -375,6 +377,20 @@ export const PoemBook = ({ poem, index }: PoemBookProps) => {
               aria-label="Delete poem"
             >
               <Trash2 size={14} />
+            </button>
+
+            {/* Copy */}
+            <button
+              onClick={() => {
+                const current = usePoemStore.getState().poems.find((p) => p.id === poem.id) ?? poem;
+                copyText(poemToText(current))
+                  .then(() => toast.success("Poem copied. Paste it anywhere to share."))
+                  .catch(() => toast.error("Couldn't copy the poem. Please try again."));
+              }}
+              className="absolute -top-4 right-8 z-20 w-9 h-9 rounded-full flex items-center justify-center shadow-xl transition-all duration-200 hover:scale-110 active:scale-95 bg-secondary text-secondary-foreground"
+              aria-label="Copy poem"
+            >
+              <Copy size={14} />
             </button>
 
             {/* Elegant dark paper */}
