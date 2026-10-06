@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      shelf_history: {
+        Row: {
+          id: number
+          poems: Json
+          saved_at: string
+          shelf_sizes: Json
+        }
+        Insert: {
+          id?: number
+          poems: Json
+          saved_at?: string
+          shelf_sizes: Json
+        }
+        Update: {
+          id?: number
+          poems?: Json
+          saved_at?: string
+          shelf_sizes?: Json
+        }
+        Relationships: []
+      }
       shelf_state: {
         Row: {
           id: number

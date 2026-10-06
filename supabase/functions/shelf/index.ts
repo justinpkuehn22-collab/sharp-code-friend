@@ -45,6 +45,15 @@ Deno.serve(async (req) => {
       return json({ error: "Invalid body" }, 400);
     }
     const b = body as { poems: unknown[]; shelfSizes: unknown[] };
+    // Keep a copy of the previous version so nothing can ever be lost
+    const { data: prev } = await supabase
+      .from("shelf_state")
+      .select("poems, shelf_sizes")
+      .eq("id", 1)
+      .maybeSingle();
+    if (prev) {
+      await supabase.from("shelf_history").insert({ poems: prev.poems, shelf_sizes: prev.shelf_sizes });
+    }
     const { error } = await supabase.from("shelf_state").upsert({
       id: 1,
       poems: b.poems,
