@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { createPortal } from "react-dom";
-import { ChevronLeft, ChevronRight, Copy, Keyboard, Pencil, Trash2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Copy, Keyboard, Lamp, LampDesk, NotebookPen, Pencil, Trash2, X } from "lucide-react";
+import { RhymedPoem } from "@/components/rhymed-poem";
+import { WritersDesk } from "@/components/writers-desk";
 import { keySoundFor, playKeySound } from "@/lib/audio/typewriter-sound";
 import { useLoungeStore } from "@/stores/lounge-store";
 import { toast } from "sonner";
@@ -66,11 +68,30 @@ const TagEditor = ({ tags, onChange }: { tags: string[]; onChange: (tags: string
 
 export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onFinishedWriting, onClose, onPrevious, onNext }: PoemReaderProps) => {
   const { updatePoem, deletePoem } = usePoemStore();
-  const { typewriterSounds, setTypewriterSounds } = useLoungeStore();
+  const [isEditing, setIsEditing] = useState(isAdmin && startEditing);
+  const { typewriterSounds, setTypewriterSounds, showRhymes, setShowRhymes } = useLoungeStore();
+  // Writer tools: the side desk, and a dimmer room for focus
+  const [deskOpen, setDeskOpen] = useState(() => typeof window === "undefined" || window.innerWidth >= 1024);
+  const [lightsDown, setLightsDown] = useState(false);
+  const insertWord = (word: string) => {
+    const el = contentRef.current;
+    const text = poem.content;
+    const start = el ? el.selectionStart : text.length;
+    const end = el ? el.selectionEnd : text.length;
+    const before = text.slice(0, start);
+    const spacer = before === "" || /\s$/.test(before) ? "" : " ";
+    const next = `${before}${spacer}${word}${text.slice(end)}`;
+    updatePoem(poem.id, { content: next.slice(0, 20000) });
+    const caret = start + spacer.length + word.length;
+    window.setTimeout(() => {
+      el?.focus();
+      el?.setSelectionRange(caret, caret);
+    }, 0);
+  };
+  const withDesk = isEditing && deskOpen;
   const onTypeKey = (e: ReactKeyboardEvent<HTMLElement>) => {
     if (typewriterSounds && !e.repeat) playKeySound(keySoundFor(e.key, e.metaKey || e.ctrlKey || e.altKey));
   };
-  const [isEditing, setIsEditing] = useState(isAdmin && startEditing);
   const contentRef = useRef<HTMLTextAreaElement>(null);
   // What the poem looked like when it was opened, to tell whether anything was written
   const openedWith = useRef(`${poem.title}\n${poem.content}`);
@@ -93,8 +114,14 @@ export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onFinishedWrit
   const body = useTypewriter(poem.content, 40, showTypewriter && title.done);
   const revealed = title.done && body.done;
 
+  const titleRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
-    if (isEditing) window.setTimeout(() => contentRef.current?.focus(), 80);
+    if (!isEditing) return;
+    // A brand-new poem starts at the title; an existing one at the words
+    const brandNew = poem.title === "" && poem.content === "";
+    window.setTimeout(() => (brandNew ? titleRef.current : contentRef.current)?.focus(), 80);
+    // Only when editing starts, not on every keystroke
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEditing]);
 
   const skipAll = useCallback(() => {
@@ -140,21 +167,63 @@ export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onFinishedWrit
       aria-modal="true"
       aria-label={poem.title.trim() || "Poem"}
     >
-      <div className="pointer-events-none absolute inset-0 animate-fade-in bg-black/80 backdrop-blur-lg" />
+      <div
+        className={cn(
+          "pointer-events-none absolute inset-0 animate-fade-in backdrop-blur-lg transition-colors duration-700",
+          lightsDown ? "bg-black/95" : "bg-black/80",
+        )}
+      />
 
-      {onPrevious && (
+      {onPrevious && !lightsDown && (
         <button type="button" onClick={onPrevious} className={cn(iconButton, "absolute left-2 z-20 bg-white/10 text-amber-100 sm:left-6")} aria-label="Previous poem">
           <ChevronLeft size={18} />
         </button>
       )}
-      {onNext && (
+      {onNext && !lightsDown && (
         <button type="button" onClick={onNext} className={cn(iconButton, "absolute right-2 z-20 bg-white/10 text-amber-100 sm:right-6")} aria-label="Next poem">
           <ChevronRight size={18} />
         </button>
       )}
 
-      <div className="relative z-10 flex max-h-[85vh] w-full max-w-xl animate-typewriter-roll flex-col">
+      <div className={cn("relative z-10 flex max-h-[88vh] w-full animate-typewriter-roll flex-col", withDesk ? "max-w-5xl" : "max-w-xl")}>
         <div className="absolute -right-4 -top-4 z-20 flex gap-2">
+          {!isEditing && (
+            <button
+              type="button"
+              onClick={() => setShowRhymes(!showRhymes)}
+              aria-pressed={showRhymes}
+              className={cn(
+                "flex h-9 items-center rounded-full px-3 text-xs font-semibold shadow-xl transition hover:scale-105",
+                showRhymes ? "bg-amber-400 text-stone-900" : "border border-amber-300/40 bg-stone-900 text-amber-100",
+              )}
+            >
+              {showRhymes ? "Hide rhymes" : "Rhyme scheme"}
+            </button>
+          )}
+          {isEditing && (
+            <>
+              <button
+                type="button"
+                onClick={() => setDeskOpen((v) => !v)}
+                aria-pressed={deskOpen}
+                className={cn(iconButton, deskOpen ? "bg-amber-400 text-stone-900" : "border border-amber-300/40 bg-stone-900 text-amber-100")}
+                aria-label={deskOpen ? "Hide the writer's desk" : "Show the writer's desk"}
+                title="Writer's desk"
+              >
+                <NotebookPen size={14} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setLightsDown((v) => !v)}
+                aria-pressed={lightsDown}
+                className={cn(iconButton, lightsDown ? "bg-amber-400 text-stone-900" : "border border-amber-300/40 bg-stone-900 text-amber-100")}
+                aria-label={lightsDown ? "Bring the lights up" : "Turn the lights down"}
+                title="Lights down"
+              >
+                {lightsDown ? <LampDesk size={14} /> : <Lamp size={14} />}
+              </button>
+            </>
+          )}
           {isAdmin && !isEditing && (
             <button type="button" onClick={() => setIsEditing(true)} className={cn(iconButton, "bg-amber-600 text-amber-50")} aria-label="Edit poem">
               <Pencil size={14} />
@@ -177,7 +246,8 @@ export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onFinishedWrit
         <div className="relative flex min-h-0 flex-col overflow-hidden rounded-md bg-[hsl(30,10%,8%)] shadow-[0_30px_80px_rgba(0,0,0,0.6),inset_0_0_0_1px_rgba(255,255,255,0.05)]">
           <div className="h-[2px] bg-gradient-to-r from-transparent via-[hsl(38,55%,50%)] to-transparent" />
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-8 py-10 sm:px-14 sm:py-14">
+          <div className={cn("grid min-h-0 flex-1", withDesk && "lg:grid-cols-[minmax(0,1fr)_300px]")}>
+          <div className="min-h-0 overflow-y-auto px-8 py-10 sm:px-14 sm:py-14">
             {isEditing ? (
               <>
                 {prompt && (
@@ -186,9 +256,17 @@ export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onFinishedWrit
                   </p>
                 )}
                 <input
+                  ref={titleRef}
                   value={poem.title}
                   onChange={(e) => updatePoem(poem.id, { title: e.target.value.slice(0, 200) })}
-                  onKeyDown={onTypeKey}
+                  onKeyDown={(e) => {
+                    onTypeKey(e);
+                    // Enter in the title moves down to the poem
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      contentRef.current?.focus();
+                    }
+                  }}
                   className="mb-6 w-full border-none bg-transparent font-display text-2xl font-bold tracking-[0.04em] text-[hsl(38,55%,70%)] outline-none placeholder:text-amber-200/30 sm:text-3xl"
                   placeholder="Title"
                   aria-label="Poem title"
@@ -282,10 +360,14 @@ export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onFinishedWrit
                 )}
 
                 {title.done && (
-                  <div className="whitespace-pre-wrap font-body text-base leading-[2.2] tracking-[0.01em] text-[hsl(34,20%,65%)] sm:text-lg">
-                    {body.done ? poem.content : body.displayed}
-                    {!body.done && <span className="ml-0.5 inline-block h-4 w-[2px] animate-blink rounded-sm bg-[hsl(38,55%,60%)] align-middle sm:h-5" />}
-                  </div>
+                  body.done && showRhymes ? (
+                    <RhymedPoem text={poem.content} />
+                  ) : (
+                    <div className="whitespace-pre-wrap font-body text-base leading-[2.2] tracking-[0.01em] text-[hsl(34,20%,65%)] sm:text-lg">
+                      {body.done ? poem.content : body.displayed}
+                      {!body.done && <span className="ml-0.5 inline-block h-4 w-[2px] animate-blink rounded-sm bg-[hsl(38,55%,60%)] align-middle sm:h-5" />}
+                    </div>
+                  )
                 )}
 
                 {revealed && (
@@ -294,6 +376,8 @@ export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onFinishedWrit
                 {!revealed && <p className="mt-10 text-center text-xs text-amber-100/25">Tap or press Enter to reveal the whole poem</p>}
               </div>
             )}
+          </div>
+          {withDesk && <WritersDesk content={poem.content} onInsertWord={insertWord} />}
           </div>
 
           <div className="h-[2px] bg-gradient-to-r from-transparent via-[hsl(38,55%,50%)] to-transparent" />

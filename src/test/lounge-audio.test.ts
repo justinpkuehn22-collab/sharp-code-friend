@@ -64,3 +64,40 @@ describe("typewriter keys", () => {
     expect(midiToFrequency(81)).toBeCloseTo(880);
   });
 });
+
+import { rhymeLetters, rhymeSchemeText } from "@/lib/rhyme";
+import { countSyllables, lineSyllables } from "@/lib/syllables";
+
+describe("rhyme scheme letters", () => {
+  it("labels rhyming lines with the same letter and keeps stanzas", () => {
+    const poem = "I walk at night\nthe street is cold\nthe moon is bright\nmy hands are old\n\nand then I wait";
+    expect(rhymeLetters(poem)).toEqual(["A", "B", "A", "B", null, "C"]);
+    expect(rhymeSchemeText(poem)).toBe("ABAB C");
+  });
+
+  it("handles an empty poem", () => {
+    expect(rhymeSchemeText("")).toBe("");
+  });
+});
+
+describe("syllables", () => {
+  it("counts common words sensibly", () => {
+    expect(countSyllables("love")).toBe(1);
+    expect(countSyllables("forever")).toBe(3);
+    expect(countSyllables("electricity")).toBeGreaterThanOrEqual(4);
+    expect(countSyllables("little")).toBe(2);
+    expect(lineSyllables("The heart breaks as it falls")).toBe(6);
+  });
+});
+
+describe("sound-alike rhymes", () => {
+  it("matches common endings spelled differently", () => {
+    expect(rhymeSchemeText("the city cold and grey\nI never learned to stay")).toBe("AA");
+    expect(rhymeSchemeText("I walk the street at night\nthe neon burning bright\nand then I write")).toBe("AAA");
+    expect(rhymeSchemeText("you swept in like a storm\nI'm sure of it, I'm yours\nyou know the score")).toBe("ABB");
+  });
+
+  it("doesn't rhyme words that only share a silent e", () => {
+    expect(rhymeSchemeText("the stone\nthe time")).toBe("AB");
+  });
+});

@@ -11,6 +11,7 @@ import { ShelfSearch } from "@/components/shelf-search";
 import { InsightsPanel } from "@/components/insights-panel";
 import { PhonographPlayer } from "@/components/phonograph-player";
 import { CheersCelebration } from "@/components/cheers-celebration";
+import { RoomThemePicker } from "@/components/room-theme-picker";
 import { useLoungeStore } from "@/stores/lounge-store";
 import { WritingPrompts } from "@/components/writing-prompts";
 import type { WritingPrompt } from "@/data/writing-prompts";
@@ -164,6 +165,7 @@ export const Index = () => {
               <BarChart3 size={12} aria-hidden="true" /> Insights
             </button>
           )}
+          <RoomThemePicker className={`${pill} border border-amber-100/20 bg-black/30 text-amber-100/85 hover:text-amber-50`} />
           <button type="button" onClick={leave} className={`${pill} border border-amber-100/20 bg-black/30 text-amber-100/85 hover:text-amber-50`}>
             <LogOut size={12} aria-hidden="true" /> Leave
           </button>
@@ -183,7 +185,21 @@ export const Index = () => {
 
         <div className="shelf-back mx-3 sm:mx-5">
           <div className="flex animate-fade-in justify-center pb-4 pt-8">
-            <GrandfatherClock />
+            {isAdmin ? (
+              <button
+                type="button"
+                onClick={() => writeNew()}
+                className="group relative flex flex-col items-center rounded-md transition hover:drop-shadow-[0_0_24px_rgba(251,191,36,0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+                aria-label="Write a new poem"
+              >
+                <GrandfatherClock />
+                <span className="mt-3 rounded-full border border-amber-400/40 bg-black/50 px-3 py-1 font-display text-xs italic text-amber-100/80 transition group-hover:border-amber-300 group-hover:text-amber-50">
+                  It's time to write. Tap the clock.
+                </span>
+              </button>
+            ) : (
+              <GrandfatherClock />
+            )}
           </div>
 
           <ShelfSearch

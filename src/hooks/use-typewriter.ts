@@ -1,27 +1,34 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-// Reveals text one character at a time, pausing on line breaks and punctuation
+// Reveals text one character at a time, pausing on line breaks and punctuation.
+// Once skipped, it stays fully shown even if it only becomes active later.
 export const useTypewriter = (text: string, speed = 30, active = false) => {
   const [displayed, setDisplayed] = useState("");
   const [done, setDone] = useState(false);
-  const skipRef = useRef(false);
+  const [skipped, setSkipped] = useState(false);
   const timerRef = useRef<number | null>(null);
 
-  const skip = useCallback(() => {
-    skipRef.current = true;
-    setDisplayed(text);
-    setDone(true);
-    if (timerRef.current) window.clearTimeout(timerRef.current);
+  useEffect(() => {
+    setSkipped(false);
   }, [text]);
 
+  const skip = useCallback(() => {
+    if (timerRef.current) window.clearTimeout(timerRef.current);
+    setSkipped(true);
+  }, []);
+
   useEffect(() => {
-    skipRef.current = false;
+    if (timerRef.current) window.clearTimeout(timerRef.current);
+    if (skipped) {
+      setDisplayed(text);
+      setDone(true);
+      return;
+    }
     setDisplayed("");
     setDone(false);
     if (!active) return;
     let i = 0;
     const tick = () => {
-      if (skipRef.current) return;
       i++;
       setDisplayed(text.slice(0, i));
       if (i >= text.length) {
@@ -39,7 +46,7 @@ export const useTypewriter = (text: string, speed = 30, active = false) => {
     return () => {
       if (timerRef.current) window.clearTimeout(timerRef.current);
     };
-  }, [text, speed, active]);
+  }, [text, speed, active, skipped]);
 
   return { displayed, done, skip };
 };

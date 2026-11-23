@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Index } from "./pages/Index.tsx";
 import { NotFound } from "./pages/NotFound.tsx";
 import { SpeakeasyGate } from "@/components/speakeasy-gate";
+import { RoomThemeSync } from "@/components/room-theme-picker";
 
 const queryClient = new QueryClient();
 
@@ -14,6 +15,7 @@ export const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <RoomThemeSync />
       <SpeakeasyGate>
         <BrowserRouter>
           <Routes>
