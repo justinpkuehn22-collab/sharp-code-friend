@@ -1,3 +1,4 @@
+import tailwindcssAnimate from "tailwindcss-animate";
 import type { Config } from "tailwindcss";
 
 export default {
@@ -150,6 +151,35 @@ export default {
           "0%, 100%": { opacity: "1" },
           "50%": { opacity: "0" },
         },
+        "cube-drop": {
+          "0%": { transform: "translateY(-150px) rotate(-25deg)", opacity: "0" },
+          "15%": { opacity: "1" },
+          "70%": { transform: "translateY(5px) rotate(8deg)" },
+          "85%": { transform: "translateY(-3px) rotate(-3deg)" },
+          "100%": { transform: "translateY(0) rotate(0deg)", opacity: "1" },
+        },
+        "whiskey-ripple": {
+          "0%": { transform: "scaleX(1)" },
+          "30%": { transform: "scaleX(1.04) translateY(-2px)" },
+          "100%": { transform: "scaleX(1)" },
+        },
+        "glass-shake": {
+          "0%, 100%": { transform: "translateX(0)" },
+          "20%, 60%": { transform: "translateX(-8px) rotate(-2deg)" },
+          "40%, 80%": { transform: "translateX(8px) rotate(2deg)" },
+        },
+        "door-open": {
+          "0%": { transform: "perspective(1400px) rotateY(0deg)" },
+          "100%": { transform: "perspective(1400px) rotateY(-82deg)" },
+        },
+        "neon-flicker": {
+          "0%, 18%, 22%, 25%, 53%, 57%, 100%": { opacity: "1" },
+          "20%, 24%, 55%": { opacity: "0.35" },
+        },
+        "candle": {
+          "0%, 100%": { opacity: "0.85", transform: "scale(1)" },
+          "50%": { opacity: "1", transform: "scale(1.06)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -163,8 +193,14 @@ export default {
         "pendulum": "pendulum 2s ease-in-out infinite",
         "typewriter-roll": "typewriter-roll 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards",
         "blink": "blink 0.8s step-end infinite",
+        "cube-drop": "cube-drop 0.55s cubic-bezier(0.3, 0.7, 0.4, 1) forwards",
+        "whiskey-ripple": "whiskey-ripple 0.5s ease-out",
+        "glass-shake": "glass-shake 0.5s ease-in-out",
+        "door-open": "door-open 1.1s cubic-bezier(0.65, 0, 0.35, 1) forwards",
+        "neon-flicker": "neon-flicker 4s linear infinite",
+        "candle": "candle 3s ease-in-out infinite",
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [tailwindcssAnimate],
 } satisfies Config;

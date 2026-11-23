@@ -130,3 +130,105 @@
     @apply transition-transform duration-200 hover:scale-105;
   }
 }
+
+/* Speakeasy entrance textures */
+@layer components {
+  .speakeasy-wall {
+    background-color: hsl(12, 22%, 9%);
+    background-image:
+      radial-gradient(ellipse at 50% 18%, hsl(36 80% 45% / 0.22) 0%, transparent 55%),
+      radial-gradient(ellipse at 50% 110%, hsl(0 0% 0% / 0.8) 0%, transparent 60%),
+      linear-gradient(hsl(12 18% 6% / 0.9) 2px, transparent 2px),
+      linear-gradient(90deg, hsl(12 18% 6% / 0.9) 2px, transparent 2px),
+      linear-gradient(hsl(12 18% 6% / 0.9) 2px, transparent 2px),
+      linear-gradient(90deg, hsl(12 18% 6% / 0.9) 2px, transparent 2px);
+    background-size: 100% 100%, 100% 100%, 64px 32px, 64px 32px, 64px 32px, 64px 32px;
+    background-position: 0 0, 0 0, 0 0, 0 0, 32px 16px, 32px 16px;
+  }
+
+  .speakeasy-door {
+    background-color: hsl(20, 32%, 14%);
+    background-image:
+      repeating-linear-gradient(90deg, transparent 0 22px, hsl(0 0% 0% / 0.12) 22px 24px, transparent 24px 61px),
+      linear-gradient(180deg, hsl(22 34% 20%), hsl(18 30% 11%));
+    box-shadow:
+      inset 0 0 0 10px hsl(18 30% 9%),
+      inset 0 0 0 12px hsl(38 45% 38% / 0.35),
+      inset 0 0 60px hsl(0 0% 0% / 0.7),
+      0 40px 80px hsl(0 0% 0% / 0.75);
+  }
+
+  .speakeasy-slot {
+    background-image: radial-gradient(ellipse at 50% 30%, hsl(36 70% 30% / 0.55), hsl(20 30% 4%) 70%);
+    box-shadow:
+      inset 0 6px 18px hsl(0 0% 0% / 0.9),
+      0 0 0 4px hsl(38 50% 42%),
+      0 0 0 7px hsl(38 40% 22%),
+      0 6px 14px hsl(0 0% 0% / 0.6);
+  }
+
+  .brass {
+    background-image: linear-gradient(135deg, hsl(42 70% 66%), hsl(38 55% 40%) 55%, hsl(40 60% 58%));
+  }
+
+  .neon-amber {
+    color: hsl(38 100% 72%);
+    text-shadow: 0 0 6px hsl(38 100% 60% / 0.9), 0 0 18px hsl(30 100% 50% / 0.7), 0 0 42px hsl(25 100% 45% / 0.5);
+  }
+}
+
+/* Bookshelf furniture (moved out of inline styles) */
+@layer components {
+  .room-backdrop {
+    background-color: hsl(30, 8%, 82%);
+    background-image:
+      radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.3) 0%, transparent 60%),
+      radial-gradient(ellipse at 50% 100%, rgba(0, 0, 0, 0.08) 0%, transparent 50%);
+  }
+  .shelf-cabinet {
+    background-image:
+      linear-gradient(180deg, hsl(25, 30%, 20%) 0%, hsl(25, 28%, 17%) 100%),
+      repeating-linear-gradient(90deg, transparent, transparent 55px, rgba(0, 0, 0, 0.05) 55px, rgba(0, 0, 0, 0.05) 57px);
+    border: 3px solid hsl(25, 25%, 14%);
+    border-radius: 4px 4px 6px 6px;
+    box-shadow:
+      8px 8px 24px rgba(0, 0, 0, 0.4),
+      -8px 8px 24px rgba(0, 0, 0, 0.4),
+      0 2px 0 rgba(255, 255, 255, 0.05) inset,
+      0 -2px 0 rgba(0, 0, 0, 0.3) inset;
+  }
+  .shelf-crown {
+    background: linear-gradient(180deg, hsl(25, 30%, 28%), hsl(25, 28%, 20%));
+    border-bottom: 2px solid hsl(25, 20%, 12%);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) inset, 0 -1px 0 rgba(255, 255, 255, 0.08) inset;
+  }
+  .shelf-base {
+    background: linear-gradient(180deg, hsl(25, 28%, 20%), hsl(25, 30%, 24%));
+    border-top: 2px solid hsl(25, 20%, 12%);
+    box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.3) inset, 0 1px 0 rgba(255, 255, 255, 0.06) inset;
+  }
+  .shelf-back {
+    background-color: hsl(25, 22%, 15%);
+    background-image:
+      repeating-linear-gradient(90deg, transparent, transparent 50px, rgba(255, 255, 255, 0.015) 50px, rgba(255, 255, 255, 0.015) 52px),
+      repeating-linear-gradient(90deg, transparent, transparent 140px, rgba(0, 0, 0, 0.06) 140px, rgba(0, 0, 0, 0.06) 143px);
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4), inset 2px 0 4px rgba(0, 0, 0, 0.2), inset -2px 0 4px rgba(0, 0, 0, 0.2);
+  }
+  .shelf-plank {
+    background-image:
+      linear-gradient(180deg, hsl(30, 30%, 50%), hsl(28, 28%, 42%)),
+      repeating-linear-gradient(90deg, transparent, transparent 45px, rgba(0, 0, 0, 0.04) 45px, rgba(0, 0, 0, 0.04) 47px);
+  }
+  .shelf-plank-front {
+    background: linear-gradient(180deg, hsl(28, 28%, 38%), hsl(25, 25%, 32%));
+    box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.2);
+  }
+  .shelf-plank-shadow {
+    background: hsl(25, 22%, 15%);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  }
+  .shelf-foot {
+    background: hsl(25, 25%, 16%);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.4);
+  }
+}

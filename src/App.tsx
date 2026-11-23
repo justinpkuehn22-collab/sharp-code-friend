@@ -3,18 +3,18 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import Index from "./pages/Index.tsx";
-import NotFound from "./pages/NotFound.tsx";
-import { PasswordGate } from "@/components/password-gate";
+import { Index } from "./pages/Index.tsx";
+import { NotFound } from "./pages/NotFound.tsx";
+import { SpeakeasyGate } from "@/components/speakeasy-gate";
 
 const queryClient = new QueryClient();
 
-const App = () => (
+export const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <PasswordGate>
+      <SpeakeasyGate>
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
@@ -22,9 +22,7 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
-      </PasswordGate>
+      </SpeakeasyGate>
     </TooltipProvider>
   </QueryClientProvider>
 );
-
-export default App;
