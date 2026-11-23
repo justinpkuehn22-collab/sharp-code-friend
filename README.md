@@ -78,6 +78,25 @@ General rules
 
 - Write code comments in English.
 
+## Access and security
+
+The shelf has two kinds of visitors:
+
+- **Readers** type the reader's code and can browse, search and read. They never see empty drafts and can't change anything.
+- **The admin** (you) types the admin code and can write, edit, tag, delete and open library insights.
+
+Codes are checked only on the server (`supabase/functions/shelf`). The browser keeps a signed, expiring session token, never the code itself. Wrong codes are rate-limited (5 tries per visitor, 60 overall, per 15 minutes).
+
+Set these secrets in Lovable Cloud:
+
+| Secret | What it does |
+| --- | --- |
+| `ADMIN_CODE` | Your code. Required to edit; use a long phrase, not a PIN. |
+| `READER_CODE` | The code you give friends. Until it's set, the old `SITE_PASSWORD` works for reading only. |
+| `SHELF_ALLOWED_ORIGINS` | Optional. Comma-separated extra sites allowed to call the API (for a custom domain). |
+
+Changing either code signs everyone out.
+
 This project was built with [Lovable](https://lovable.dev).
 
 **Live app**: https://sharp-code-friend.lovable.app

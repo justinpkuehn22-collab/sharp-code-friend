@@ -1,100 +1,57 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
-import type { Poem } from "@/data/poems";
-import { defaultPoems } from "@/data/poems";
+import { isWritten, type Poem } from "@/data/poems";
+
+type EditablePoemFields = Pick<Poem, "title" | "content" | "tags" | "mood">;
 
 interface PoemStore {
   poems: Poem[];
-  shelfSizes: number[];
-  updatePoem: (id: string, updates: Partial<Pick<Poem, "title" | "content">>) => void;
+  // Bumps on every local edit so the sync hook knows when to save
+  revision: number;
+  setPoems: (poems: Poem[]) => void;
+  createPoem: () => string;
+  updatePoem: (id: string, updates: Partial<EditablePoemFields>) => void;
   deletePoem: (id: string) => void;
-  deleteShelf: (shelfIdx: number) => void;
-  addShelf: () => void;
-  importPoems: (items: Array<Pick<Poem, "title" | "content">>) => void;
+  // Drops a poem if it was left blank, so empty books never sit on the shelf
+  discardIfEmpty: (id: string) => void;
+  importPoems: (items: Array<Pick<Poem, "title" | "content">>) => number;
 }
 
-let nextId = 100;
+const newId = (): string =>
+  `poem-${typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`}`;
 
-export const usePoemStore = create<PoemStore>()(
-  persist(
-    (set) => ({
-      poems: defaultPoems,
-      shelfSizes: [7, 6],
-      updatePoem: (id, updates) =>
-        set((state) => ({
-          poems: state.poems.map((p) =>
-            p.id === id ? { ...p, ...updates } : p,
-          ),
-        })),
-      deletePoem: (id) =>
-        set((state) => {
-          const poemIdx = state.poems.findIndex((p) => p.id === id);
-          if (poemIdx === -1) return state;
+const nowIso = (): string => new Date().toISOString();
 
-          // Find which shelf this poem is on
-          let offset = 0;
-          let shelfIdx = 0;
-          for (let s = 0; s < state.shelfSizes.length; s++) {
-            if (poemIdx < offset + state.shelfSizes[s]) {
-              shelfIdx = s;
-              break;
-            }
-            offset += state.shelfSizes[s];
-          }
-
-          const newPoems = state.poems.filter((p) => p.id !== id);
-          const newSizes = [...state.shelfSizes];
-          newSizes[shelfIdx] = Math.max(0, newSizes[shelfIdx] - 1);
-
-          // Remove empty shelves
-          const filteredSizes = newSizes.filter((s) => s > 0);
-
-          return {
-            poems: newPoems,
-            shelfSizes: filteredSizes.length > 0 ? filteredSizes : [0],
-          };
-        }),
-      deleteShelf: (shelfIdx) =>
-        set((state) => {
-          let offset = 0;
-          for (let s = 0; s < shelfIdx; s++) offset += state.shelfSizes[s];
-          const count = state.shelfSizes[shelfIdx];
-          const newPoems = [...state.poems.slice(0, offset), ...state.poems.slice(offset + count)];
-          const newSizes = state.shelfSizes.filter((_, i) => i !== shelfIdx);
-          return {
-            poems: newPoems,
-            shelfSizes: newSizes.length > 0 ? newSizes : [0],
-          };
-        }),
-      importPoems: (items) =>
-        set((state) => {
-          if (items.length === 0) return state;
-          const newPoems: Poem[] = items.map((item, i) => ({
-            id: `poem-${nextId++}-${Date.now()}-${i}`,
-            title: item.title,
-            content: item.content,
-          }));
-          const sizes: number[] = [];
-          for (let i = 0; i < newPoems.length; i += 6) sizes.push(Math.min(6, newPoems.length - i));
-          return {
-            poems: [...state.poems, ...newPoems],
-            shelfSizes: [...state.shelfSizes.filter((s) => s > 0), ...sizes],
-          };
-        }),
-      addShelf: () =>
-        set((state) => {
-          const count = 6;
-          const newPoems: Poem[] = Array.from({ length: count }, (_, i) => ({
-            id: `poem-${nextId++}-${Date.now()}-${i}`,
-            title: "Untitled",
-            content: "",
-          }));
-          return {
-            poems: [...state.poems, ...newPoems],
-            shelfSizes: [...state.shelfSizes, count],
-          };
-        }),
-    }),
-    { name: "poetry-shelf" },
-  ),
-);
+export const usePoemStore = create<PoemStore>()((set, get) => ({
+  poems: [],
+  revision: 0,
+  setPoems: (poems) => set({ poems: poems.filter(isWritten) }),
+  createPoem: () => {
+    const id = newId();
+    const stamp = nowIso();
+    set((state) => ({
+      poems: [...state.poems, { id, title: "", content: "", tags: [], mood: null, createdAt: stamp, updatedAt: stamp }],
+    }));
+    return id;
+  },
+  updatePoem: (id, updates) =>
+    set((state) => ({
+      poems: state.poems.map((p) => (p.id === id ? { ...p, ...updates, updatedAt: nowIso() } : p)),
+      revision: state.revision + 1,
+    })),
+  deletePoem: (id) =>
+    set((state) => ({ poems: state.poems.filter((p) => p.id !== id), revision: state.revision + 1 })),
+  discardIfEmpty: (id) => {
+    const poem = get().poems.find((p) => p.id === id);
+    if (poem && !isWritten(poem)) {
+      set((state) => ({ poems: state.poems.filter((p) => p.id !== id), revision: state.revision + 1 }));
+    }
+  },
+  importPoems: (items) => {
+    const stamp = nowIso();
+    const fresh: Poem[] = items
+      .filter((item) => item.content.trim() !== "")
+      .map((item) => ({ id: newId(), title: item.title, content: item.content, tags: [], mood: null, createdAt: stamp, updatedAt: stamp }));
+    if (fresh.length > 0) set((state) => ({ poems: [...state.poems, ...fresh], revision: state.revision + 1 }));
+    return fresh.length;
+  },
+}));

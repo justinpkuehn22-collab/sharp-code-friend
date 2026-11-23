@@ -1,250 +1,220 @@
-import { usePoemStore } from "@/stores/poem-store";
-import { PoemBook } from "@/components/poem-book";
-import { GrandfatherClock } from "@/components/grandfather-clock";
-import { Plus, Minus, Copy, ClipboardPaste } from "lucide-react";
+import { useMemo, useState } from "react";
+import { BarChart3, Check, ClipboardPaste, Copy, CloudOff, Loader2, LogOut, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { usePoemStore } from "@/stores/poem-store";
+import { useSessionStore } from "@/stores/session-store";
+import { useShelfAutosave, type SaveStatus } from "@/hooks/use-shelf";
+import { PoemBook } from "@/components/poem-book";
+import { PoemReader } from "@/components/poem-reader";
+import { GrandfatherClock } from "@/components/grandfather-clock";
+import { ShelfSearch } from "@/components/shelf-search";
+import { InsightsPanel } from "@/components/insights-panel";
 import { copyText, poemsToText, textToPoems } from "@/lib/poem-clipboard";
+import { chunk, emptyFilter, filterPoems, moodsInUse, tagCounts, type PoemFilter } from "@/lib/poem-search";
+import { isWritten } from "@/data/poems";
+import { useIsMobile } from "@/hooks/use-mobile";
+
+
+const pill =
+  "flex h-7 items-center gap-1.5 rounded-full px-3 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300";
+
+const SaveIndicator = ({ status }: { status: SaveStatus }) => {
+  if (status === "saving")
+    return (
+      <span className="flex items-center gap-1 text-xs text-stone-600">
+        <Loader2 size={12} className="animate-spin" aria-hidden="true" /> Saving…
+      </span>
+    );
+  if (status === "saved")
+    return (
+      <span className="flex items-center gap-1 text-xs text-stone-600">
+        <Check size={12} aria-hidden="true" /> Saved
+      </span>
+    );
+  if (status === "error")
+    return (
+      <span className="flex items-center gap-1 text-xs font-semibold text-destructive">
+        <CloudOff size={12} aria-hidden="true" /> Not saved — check your connection
+      </span>
+    );
+  return null;
+};
 
 export const Index = () => {
-  const { poems, shelfSizes, addShelf, deleteShelf, importPoems } = usePoemStore();
+  const { poems, createPoem, discardIfEmpty, importPoems } = usePoemStore();
+  const { token, role, signOut } = useSessionStore();
+  const isAdmin = role === "admin";
+  const saveStatus = useShelfAutosave(token, isAdmin);
 
-  const shelves: typeof poems[] = [];
-  let offset = 0;
-  for (const count of shelfSizes) {
-    shelves.push(poems.slice(offset, offset + count));
-    offset += count;
-  }
+  const booksPerShelf = useIsMobile() ? 5 : 7;
+  const [filter, setFilter] = useState<PoemFilter>(emptyFilter);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [freshId, setFreshId] = useState<string | null>(null);
+  const [insightsOpen, setInsightsOpen] = useState(false);
+
+  const written = useMemo(() => poems.filter(isWritten), [poems]);
+  const visible = useMemo(() => filterPoems(written, filter), [written, filter]);
+  const shelves = useMemo(() => chunk(visible, booksPerShelf), [visible, booksPerShelf]);
+  const tags = useMemo(() => tagCounts(written), [written]);
+  // Each book keeps its own size no matter how the shelf is filtered
+  const bookIndex = useMemo(() => new Map(written.map((p, i) => [p.id, i])), [written]);
+  const moods = useMemo(() => moodsInUse(written), [written]);
+
+  const openPoem = poems.find((p) => p.id === openId) ?? null;
+  const openIndex = visible.findIndex((p) => p.id === openId);
+
+  const close = () => {
+    if (openId) discardIfEmpty(openId);
+    setOpenId(null);
+    setFreshId(null);
+  };
+
+  const writeNew = () => {
+    const id = createPoem();
+    setFreshId(id);
+    setOpenId(id);
+  };
+
+  const random = () => {
+    if (visible.length === 0) return;
+    setOpenId(visible[Math.floor(Math.random() * visible.length)].id);
+  };
+
+  const paste = async () => {
+    let text = "";
+    try {
+      text = await navigator.clipboard.readText();
+    } catch {
+      text = window.prompt("Paste your poems here:") ?? "";
+    }
+    const added = importPoems(textToPoems(text));
+    if (added === 0) toast.error("Nothing to paste. Copy some poems first.");
+    else toast.success(`Added ${added} ${added === 1 ? "poem" : "poems"} to your shelf.`);
+  };
+
+  const leave = () => {
+    if (isAdmin && saveStatus === "saving") {
+      toast.message("Hold on, still saving your last change.");
+      return;
+    }
+    signOut();
+  };
 
   return (
-    <div
-      className="min-h-screen overflow-y-auto flex justify-center py-10 px-4"
-      style={{
-        backgroundColor: "hsl(30, 8%, 82%)",
-        backgroundImage: `
-          radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.3) 0%, transparent 60%),
-          radial-gradient(ellipse at 50% 100%, rgba(0,0,0,0.08) 0%, transparent 50%)
-        `,
-      }}
-    >
-      {/* The bookshelf — a piece of furniture */}
-      <div
-        className="relative w-full max-w-3xl"
-        style={{
-          background: `
-            linear-gradient(
-              180deg,
-              hsl(25, 30%, 20%) 0%,
-              hsl(25, 28%, 17%) 100%
-            )
-          `,
-          backgroundImage: `
-            linear-gradient(180deg, hsl(25, 30%, 20%) 0%, hsl(25, 28%, 17%) 100%),
-            repeating-linear-gradient(
-              90deg,
-              transparent,
-              transparent 55px,
-              rgba(0,0,0,0.05) 55px,
-              rgba(0,0,0,0.05) 57px
-            ),
-            repeating-linear-gradient(
-              90deg,
-              transparent,
-              transparent 160px,
-              rgba(0,0,0,0.07) 160px,
-              rgba(0,0,0,0.07) 163px
-            )
-          `,
-          borderRadius: "4px 4px 6px 6px",
-          boxShadow: `
-            8px 8px 24px rgba(0,0,0,0.4),
-            -8px 8px 24px rgba(0,0,0,0.4),
-            0 2px 0 rgba(255,255,255,0.05) inset,
-            0 -2px 0 rgba(0,0,0,0.3) inset,
-            3px 0 0 rgba(255,255,255,0.03) inset,
-            -3px 0 0 rgba(255,255,255,0.03) inset
-          `,
-          border: "3px solid hsl(25, 25%, 14%)",
-        }}
-      >
-        {/* Top crown molding */}
-        <div
-          className="h-5 rounded-t-sm"
-          style={{
-            background: "linear-gradient(180deg, hsl(25, 30%, 28%), hsl(25, 28%, 20%))",
-            borderBottom: "2px solid hsl(25, 20%, 12%)",
-            boxShadow: "0 2px 4px rgba(0,0,0,0.3) inset, 0 -1px 0 rgba(255,255,255,0.08) inset",
-          }}
-        />
+    <div className="room-backdrop flex min-h-screen flex-col items-center px-4 py-6 sm:py-10">
+      <header className="mb-4 flex w-full max-w-3xl items-center justify-between gap-3">
+        <p className="font-display text-sm italic text-stone-700">
+          {isAdmin ? "Welcome back. The house is yours." : "Pull up a chair and read a while."}
+        </p>
+        <div className="flex items-center gap-2">
+          {isAdmin && <SaveIndicator status={saveStatus} />}
+          {isAdmin && (
+            <button type="button" onClick={() => setInsightsOpen(true)} className={`${pill} bg-stone-800 text-amber-100 hover:bg-stone-700`}>
+              <BarChart3 size={12} aria-hidden="true" /> Insights
+            </button>
+          )}
+          <button type="button" onClick={leave} className={`${pill} bg-stone-300/70 text-stone-800 hover:bg-stone-300`}>
+            <LogOut size={12} aria-hidden="true" /> Leave
+          </button>
+        </div>
+      </header>
 
-        {/* Inner back panel — slightly lighter to show depth */}
-        <div
-          className="mx-3 sm:mx-5"
-          style={{
-            backgroundColor: "hsl(25, 22%, 15%)",
-            backgroundImage: `
-              repeating-linear-gradient(
-                90deg,
-                transparent,
-                transparent 50px,
-                rgba(255,255,255,0.015) 50px,
-                rgba(255,255,255,0.015) 52px
-              ),
-              repeating-linear-gradient(
-                90deg,
-                transparent,
-                transparent 140px,
-                rgba(0,0,0,0.06) 140px,
-                rgba(0,0,0,0.06) 143px
-              ),
-              repeating-linear-gradient(
-                0deg,
-                transparent,
-                transparent 300px,
-                rgba(255,255,255,0.01) 300px,
-                rgba(255,255,255,0.01) 302px
-              )
-            `,
-            boxShadow: "inset 0 2px 8px rgba(0,0,0,0.4), inset 2px 0 4px rgba(0,0,0,0.2), inset -2px 0 4px rgba(0,0,0,0.2)",
-          }}
-        >
-          {/* Grandfather Clock */}
-          <div className="flex justify-center pt-8 pb-4 animate-fade-in">
+      <div className="shelf-cabinet relative w-full max-w-3xl">
+        <div className="shelf-crown h-5 rounded-t-sm" />
+
+        <div className="shelf-back mx-3 sm:mx-5">
+          <div className="flex animate-fade-in justify-center pb-4 pt-8">
             <GrandfatherClock />
           </div>
 
-          {/* Shelves */}
-          {shelves.map((shelfBooks, shelfIdx) => (
+          <ShelfSearch
+            filter={filter}
+            onChange={setFilter}
+            moods={moods}
+            tags={tags}
+            shown={visible.length}
+            total={written.length}
+            onRandom={random}
+          />
+
+          {shelves.length === 0 && (
+            <div className="px-6 pb-2 pt-10 text-center">
+              <p className="font-display text-lg italic text-amber-100/70">
+                {written.length === 0
+                  ? isAdmin
+                    ? "Your shelf is waiting for its first poem."
+                    : "No poems on the shelf yet. Check back soon."
+                  : "No poems match that. Try another word or mood."}
+              </p>
+              <div className="shelf-plank mt-8 h-4" />
+              <div className="shelf-plank-front h-3" />
+            </div>
+          )}
+
+          {shelves.map((books, shelfIdx) => (
             <div key={shelfIdx} className="relative">
-              {/* Books row */}
-              <div className="flex items-end justify-center gap-2 sm:gap-3 px-6 sm:px-10 pb-0 pt-8">
-                {shelfBooks.map((poem, i) => {
-                  const globalIdx = shelfSizes.slice(0, shelfIdx).reduce((a, b) => a + b, 0) + i;
-                  return (
-                    <div
-                      key={poem.id}
-                      className="opacity-0 animate-fade-in"
-                      style={{ animationDelay: `${0.2 + shelfIdx * 0.3 + i * 0.06}s` }}
-                    >
-                      <PoemBook poem={poem} index={globalIdx} />
-                    </div>
-                  );
-                })}
+              <div className="flex items-end justify-center gap-2 px-6 pb-0 pt-8 sm:gap-3 sm:px-10">
+                {books.map((poem) => (
+                  <div key={poem.id} className="animate-fade-in">
+                    <PoemBook poem={poem} index={bookIndex.get(poem.id) ?? 0} onOpen={setOpenId} />
+                  </div>
+                ))}
               </div>
-
-              {/* Shelf plank */}
-              <div className="relative group/shelf">
-                {/* Top surface */}
-                <div
-                  className="h-4 relative overflow-hidden"
-                  style={{
-                    background: "linear-gradient(180deg, hsl(30, 30%, 50%), hsl(28, 28%, 42%))",
-                    backgroundImage: `
-                      linear-gradient(180deg, hsl(30, 30%, 50%), hsl(28, 28%, 42%)),
-                      repeating-linear-gradient(90deg, transparent, transparent 45px, rgba(0,0,0,0.04) 45px, rgba(0,0,0,0.04) 47px)
-                    `,
-                  }}
-                >
-                  <div className="absolute inset-x-0 top-0 h-[1px] bg-white/10" />
-
-                  {/* Remove shelf button — appears on hover */}
-                  <button
-                    onClick={() => {
-                      if (window.confirm("Remove this entire shelf and all its books?")) {
-                        deleteShelf(shelfIdx);
-                      }
-                    }}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-destructive flex items-center justify-center opacity-0 group-hover/shelf:opacity-70 hover:!opacity-100 transition-all duration-200 hover:scale-110 z-10"
-                    aria-label="Remove shelf"
-                  >
-                    <Minus size={10} className="text-destructive-foreground" />
-                  </button>
-                </div>
-                {/* Front face */}
-                <div
-                  className="h-3"
-                  style={{
-                    background: "linear-gradient(180deg, hsl(28, 28%, 38%), hsl(25, 25%, 32%))",
-                    boxShadow: "inset 0 1px 0 rgba(0,0,0,0.2)",
-                  }}
-                />
-                {/* Bottom lip shadow */}
-                <div className="h-1" style={{ background: "hsl(25, 22%, 15%)", boxShadow: "0 4px 8px rgba(0,0,0,0.3)" }} />
+              <div className="shelf-plank relative h-4 overflow-hidden">
+                <div className="absolute inset-x-0 top-0 h-px bg-white/10" />
               </div>
+              <div className="shelf-plank-front h-3" />
+              <div className="shelf-plank-shadow h-1" />
             </div>
           ))}
 
-          {/* Add shelf button */}
-          <div className="flex justify-center items-center gap-3 pt-6 pb-4">
-            <button
-              onClick={() => {
-                copyText(poemsToText(poems))
-                  .then(() => toast.success("All your poems are copied. Paste them anywhere to save or share."))
-                  .catch(() => toast.error("Couldn't copy your poems. Please try again."));
-              }}
-              className="flex items-center gap-1.5 rounded-full px-3 h-7 text-xs font-semibold bg-secondary text-secondary-foreground opacity-70 hover:opacity-100 transition-opacity"
-              aria-label="Copy all poems"
-            >
-              <Copy size={12} /> Copy all
-            </button>
-            <button
-              onClick={async () => {
-                let text = "";
-                try {
-                  text = await navigator.clipboard.readText();
-                } catch {
-                  text = window.prompt("Paste your poems here:") ?? "";
-                }
-                const items = textToPoems(text);
-                if (items.length === 0) {
-                  toast.error("Nothing to paste. Copy some poems first.");
-                  return;
-                }
-                importPoems(items);
-                toast.success(`Added ${items.length} ${items.length === 1 ? "poem" : "poems"} to a new shelf.`);
-              }}
-              className="flex items-center gap-1.5 rounded-full px-3 h-7 text-xs font-semibold bg-primary text-primary-foreground opacity-70 hover:opacity-100 transition-opacity"
-              aria-label="Paste poems"
-            >
-              <ClipboardPaste size={12} /> Paste
-            </button>
-            <button
-              onClick={addShelf}
-              className="group w-7 h-7 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-125 active:scale-95 opacity-40 hover:opacity-80"
-              style={{
-                background: "linear-gradient(135deg, hsl(38, 55%, 45%), hsl(38, 50%, 35%))",
-                boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
-              }}
-              aria-label="Add new shelf"
-            >
-              <Plus size={14} className="text-white" />
-            </button>
-          </div>
+          {isAdmin ? (
+            <div className="flex flex-wrap items-center justify-center gap-3 pb-5 pt-6">
+              <button type="button" onClick={writeNew} className={`${pill} bg-amber-600 text-amber-50 hover:bg-amber-500`}>
+                <Plus size={12} aria-hidden="true" /> Write a new poem
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  copyText(poemsToText(written))
+                    .then(() => toast.success("All your poems are copied. Paste them anywhere to save or share."))
+                    .catch(() => toast.error("Couldn't copy your poems. Please try again."));
+                }}
+                className={`${pill} bg-secondary text-secondary-foreground opacity-80 hover:opacity-100`}
+              >
+                <Copy size={12} aria-hidden="true" /> Copy all
+              </button>
+              <button type="button" onClick={() => void paste()} className={`${pill} bg-primary text-primary-foreground opacity-80 hover:opacity-100`}>
+                <ClipboardPaste size={12} aria-hidden="true" /> Paste poems
+              </button>
+            </div>
+          ) : (
+            <div className="pb-5 pt-6" />
+          )}
         </div>
 
-        {/* Bottom base molding */}
-        <div
-          className="h-6 rounded-b-sm"
-          style={{
-            background: "linear-gradient(180deg, hsl(25, 28%, 20%), hsl(25, 30%, 24%))",
-            borderTop: "2px solid hsl(25, 20%, 12%)",
-            boxShadow: "0 -2px 4px rgba(0,0,0,0.3) inset, 0 1px 0 rgba(255,255,255,0.06) inset",
-          }}
-        />
-
-        {/* Furniture feet */}
+        <div className="shelf-base h-6 rounded-b-sm" />
         <div className="flex justify-between px-6">
-          <div
-            className="w-8 h-3 rounded-b-md"
-            style={{ background: "hsl(25, 25%, 16%)", boxShadow: "0 3px 6px rgba(0,0,0,0.4)" }}
-          />
-          <div
-            className="w-8 h-3 rounded-b-md"
-            style={{ background: "hsl(25, 25%, 16%)", boxShadow: "0 3px 6px rgba(0,0,0,0.4)" }}
-          />
+          <div className="shelf-foot h-3 w-8 rounded-b-md" />
+          <div className="shelf-foot h-3 w-8 rounded-b-md" />
         </div>
       </div>
+
+      {openPoem && (
+        <PoemReader
+          key={openPoem.id}
+          poem={openPoem}
+          isAdmin={isAdmin}
+          startEditing={openPoem.id === freshId}
+          onClose={close}
+          onPrevious={openIndex > 0 ? () => setOpenId(visible[openIndex - 1].id) : undefined}
+          onNext={openIndex >= 0 && openIndex < visible.length - 1 ? () => setOpenId(visible[openIndex + 1].id) : undefined}
+        />
+      )}
+
+      {isAdmin && (
+        <InsightsPanel open={insightsOpen} onOpenChange={setInsightsOpen} poems={written} onOpenPoem={setOpenId} />
+      )}
     </div>
   );
 };
-
-export default Index;
