@@ -137,3 +137,34 @@ describe("isAllowedOrigin", () => {
     expect(isAllowedOrigin("https://poems.example.com", ["https://poems.example.com"])).toBe(true);
   });
 });
+
+import { resolveCodes } from "../../supabase/functions/_shared/shelf-core";
+
+describe("resolveCodes", () => {
+  const env = (vars: Record<string, string>) => (name: string) => vars[name];
+
+  it("reads the standard secret names", () => {
+    expect(resolveCodes(env({ ADMIN_CODE: "1106", READER_CODE: "Ontherocks" }))).toMatchObject({
+      admin: "1106",
+      reader: "Ontherocks",
+      adminFrom: "ADMIN_CODE",
+      readerFrom: "READER_CODE",
+    });
+  });
+
+  it("accepts common variations of the names", () => {
+    const codes = resolveCodes(env({ ADMIN_PASSWORD: "1106", READER_PASSWORD: "Ontherocks" }));
+    expect(codes.admin).toBe("1106");
+    expect(codes.reader).toBe("Ontherocks");
+  });
+
+  it("ignores blank secrets", () => {
+    expect(resolveCodes(env({ ADMIN_CODE: "  ", OWNER_CODE: "1106" })).admin).toBe("1106");
+  });
+
+  it("only lets the old site password read, and never when it equals the admin code", () => {
+    expect(resolveCodes(env({ SITE_PASSWORD: "1234" }))).toMatchObject({ admin: null, reader: "1234" });
+    expect(resolveCodes(env({ SITE_PASSWORD: "1106", ADMIN_CODE: "1106" }))).toMatchObject({ admin: "1106", reader: null });
+    expect(resolveCodes(env({ SITE_PASSWORD: "1234", READER_CODE: "Ontherocks" })).reader).toBe("Ontherocks");
+  });
+});

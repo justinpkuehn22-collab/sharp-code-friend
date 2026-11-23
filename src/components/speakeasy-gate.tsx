@@ -1,7 +1,7 @@
 import { Eye, EyeOff } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { WhiskeyGlass } from "@/components/whiskey-glass";
-import { signIn, TooManyAttemptsError, WrongCodeError } from "@/services/shelf-service";
+import { codeFromInviteHash, signIn, TooManyAttemptsError, WrongCodeError } from "@/services/shelf-service";
 import { clearLegacyStorage, isSessionValid, useSessionStore } from "@/stores/session-store";
 import { useShelfQuery } from "@/hooks/use-shelf";
 import { cn } from "@/lib/utils";
@@ -21,9 +21,14 @@ export const SpeakeasyGate = ({ children }: { children: ReactNode }) => {
   const [showCode, setShowCode] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Invite links (#word=...) fill in the word and knock for the guest; the word is then
+  // removed from the address bar so it isn't left in their history
+  const [inviteCode] = useState(() => (typeof window === "undefined" ? null : codeFromInviteHash(window.location.hash)));
+
   useEffect(() => {
     clearLegacyStorage();
-  }, []);
+    if (inviteCode !== null) window.history.replaceState(null, "", window.location.pathname + window.location.search);
+  }, [inviteCode]);
 
   useEffect(() => {
     if (token && !isSessionValid(expiresAt)) signOut();
@@ -56,13 +61,12 @@ export const SpeakeasyGate = ({ children }: { children: ReactNode }) => {
     if (phase === "waiting") inputRef.current?.focus();
   }, [phase]);
 
-  const onSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!code.trim() || phase !== "waiting") return;
+  const knock = async (word: string) => {
+    if (!word.trim() || phase !== "waiting") return;
     setMessage("");
     setPhase("checking");
     try {
-      const session = await signIn(code);
+      const session = await signIn(word);
       setCode("");
       setSession(session);
       setPhase("opening");
@@ -72,6 +76,22 @@ export const SpeakeasyGate = ({ children }: { children: ReactNode }) => {
       else refuse("The door's stuck. Check your connection and knock again.");
     }
   };
+
+  const onSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    void knock(code);
+  };
+
+  // Arriving from an invite: knock for them once, unless they're already inside
+  const invited = useRef(false);
+  useEffect(() => {
+    if (invited.current || inviteCode === null || sessionValid) return;
+    invited.current = true;
+    setCode(inviteCode);
+    window.setTimeout(() => void knock(inviteCode), 900);
+    // Runs once on arrival
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inviteCode, sessionValid]);
 
   // Returning visitors with a live session skip the door entirely
   const returning = sessionValid && phase === "waiting";

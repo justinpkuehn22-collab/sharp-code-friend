@@ -6,6 +6,7 @@ import {
   loginLimits,
   normaliseStored,
   readerView,
+  resolveCodes,
   roleForCode,
   sha256Hex,
   validatePoems,
@@ -14,22 +15,22 @@ import {
 } from "../_shared/shelf-core.ts";
 
 // Secrets (set in Lovable Cloud → Secrets):
-//   ADMIN_CODE   – your code. Required for any editing; there is deliberately no fallback.
-//   READER_CODE  – the read-only code you give to friends. Until it's set, the old shared
-//                  SITE_PASSWORD keeps working, but only for reading.
+//   ADMIN_CODE   – your code (ADMIN_PASSWORD / OWNER_CODE also work). Required to edit.
+//   READER_CODE  – the code friends use (READER_PASSWORD / GUEST_CODE also work). Until it's set,
+//                  the old SITE_PASSWORD works for reading only.
 //   SHELF_ALLOWED_ORIGINS – optional comma-separated extra origins (e.g. a custom domain)
-const adminCode = Deno.env.get("ADMIN_CODE") || null;
-const readerCode = Deno.env.get("READER_CODE") || Deno.env.get("SITE_PASSWORD") || null;
+// Secrets are read on every request, so a newly added one works straight away.
 const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const extraOrigins = (Deno.env.get("SHELF_ALLOWED_ORIGINS") ?? "")
   .split(",")
   .map((o) => o.trim())
   .filter(Boolean);
 
+const currentCodes = () => resolveCodes((name) => Deno.env.get(name));
+
 // Sessions are signed with a key tied to the current codes: changing a code signs everyone out
-const sessionSecretPromise = sha256Hex(
-  `${Deno.env.get("SHELF_SESSION_SECRET") ?? serviceKey}|${adminCode ?? ""}|${readerCode ?? ""}`,
-);
+const sessionSecret = (codes = currentCodes()): Promise<string> =>
+  sha256Hex(`${Deno.env.get("SHELF_SESSION_SECRET") ?? serviceKey}|${codes.admin ?? ""}|${codes.reader ?? ""}`);
 
 const supabase = createClient(Deno.env.get("SUPABASE_URL") ?? "", serviceKey, {
   auth: { persistSession: false },
@@ -61,7 +62,8 @@ const clientKey = async (req: Request): Promise<string> => {
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
     "unknown";
   // Store only a keyed hash, never the raw IP
-  return sha256Hex(`${await sessionSecretPromise}|ip|${ip}`);
+  // Keyed with the service key only, so changing a code doesn't reset the guess counter
+  return sha256Hex(`${serviceKey}|ip|${ip}`);
 };
 
 // Backup limiter kept in memory, used only if the attempts table isn't available yet
@@ -124,7 +126,8 @@ const handleLogin = async (req: Request, origin: string | null): Promise<Respons
     return reply(origin, { error: "too_many_attempts" }, 429, { "Retry-After": String(loginLimits.windowMinutes * 60) });
   }
 
-  const role = await roleForCode(code, { admin: adminCode, reader: readerCode });
+  const codes = currentCodes();
+  const role = await roleForCode(code, { admin: codes.admin, reader: codes.reader });
   if (!role) {
     await recordFailure(ipHash);
     return reply(origin, { error: "wrong_code" }, 401);
@@ -132,7 +135,7 @@ const handleLogin = async (req: Request, origin: string | null): Promise<Respons
   // A correct code clears this visitor's failed attempts
   memoryAttempts.delete(ipHash);
   await supabase.from("shelf_login_attempts").delete().eq("ip_hash", ipHash);
-  const { token, expiresAt } = await createSessionToken(await sessionSecretPromise, role);
+  const { token, expiresAt } = await createSessionToken(await sessionSecret(codes), role);
   return reply(origin, { token, role, expiresAt });
 };
 
@@ -186,15 +189,34 @@ Deno.serve(async (req) => {
   const origin = req.headers.get("origin");
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: corsFor(origin) });
   if (origin && !isAllowedOrigin(origin, extraOrigins)) return reply(origin, { error: "forbidden_origin" }, 403);
-  if ((!adminCode && !readerCode) || serviceKey === "") return reply(origin, { error: "not_configured" }, 503);
+  const codes = currentCodes();
+
+  // Safe to call by anyone: says which codes are set up, never what they are
+  if (req.method === "GET" && new URL(req.url).searchParams.get("action") === "status") {
+    return reply(origin, {
+      adminCodeSet: codes.admin !== null,
+      adminSecretName: codes.adminFrom,
+      readerCodeSet: codes.reader !== null,
+      readerSecretName: codes.readerFrom,
+    });
+  }
+
+  if ((!codes.admin && !codes.reader) || serviceKey === "") return reply(origin, { error: "not_configured" }, 503);
 
   const action = new URL(req.url).searchParams.get("action");
 
   try {
     if (req.method === "POST" && action === "login") return await handleLogin(req, origin);
 
-    const session = await verifySessionToken(await sessionSecretPromise, req.headers.get("x-shelf-session"));
+    const session = await verifySessionToken(await sessionSecret(codes), req.headers.get("x-shelf-session"));
     if (!session) return reply(origin, { error: "signed_out" }, 401);
+
+    // Admin only: the reader's code, so the owner can share it with friends
+    if (req.method === "GET" && action === "invite") {
+      if (session.role !== "admin") return reply(origin, { error: "admin_only" }, 403);
+      if (!codes.reader) return reply(origin, { error: "no_reader_code" }, 404);
+      return reply(origin, { readerCode: codes.reader });
+    }
 
     if (req.method === "GET") {
       const poems = await loadPoems();
