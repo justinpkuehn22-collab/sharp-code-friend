@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { isWritten, type Poem } from "@/data/poems";
+import { isWritten, type Mood, type Poem } from "@/data/poems";
 
 type EditablePoemFields = Pick<Poem, "title" | "content" | "tags" | "mood">;
 
@@ -8,7 +8,7 @@ interface PoemStore {
   // Bumps on every local edit so the sync hook knows when to save
   revision: number;
   setPoems: (poems: Poem[]) => void;
-  createPoem: () => string;
+  createPoem: (options?: { mood?: Mood | null }) => string;
   updatePoem: (id: string, updates: Partial<EditablePoemFields>) => void;
   deletePoem: (id: string) => void;
   // Drops a poem if it was left blank, so empty books never sit on the shelf
@@ -25,11 +25,11 @@ export const usePoemStore = create<PoemStore>()((set, get) => ({
   poems: [],
   revision: 0,
   setPoems: (poems) => set({ poems: poems.filter(isWritten) }),
-  createPoem: () => {
+  createPoem: (options = {}) => {
     const id = newId();
     const stamp = nowIso();
     set((state) => ({
-      poems: [...state.poems, { id, title: "", content: "", tags: [], mood: null, createdAt: stamp, updatedAt: stamp }],
+      poems: [...state.poems, { id, title: "", content: "", tags: [], mood: options.mood ?? null, createdAt: stamp, updatedAt: stamp }],
     }));
     return id;
   },

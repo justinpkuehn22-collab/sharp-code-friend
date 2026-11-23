@@ -9,6 +9,8 @@ import { PoemReader } from "@/components/poem-reader";
 import { GrandfatherClock } from "@/components/grandfather-clock";
 import { ShelfSearch } from "@/components/shelf-search";
 import { InsightsPanel } from "@/components/insights-panel";
+import { WritingPrompts } from "@/components/writing-prompts";
+import type { WritingPrompt } from "@/data/writing-prompts";
 import { copyText, poemsToText, textToPoems } from "@/lib/poem-clipboard";
 import { chunk, emptyFilter, filterPoems, moodsInUse, tagCounts, type PoemFilter } from "@/lib/poem-search";
 import { isWritten } from "@/data/poems";
@@ -21,19 +23,19 @@ const pill =
 const SaveIndicator = ({ status }: { status: SaveStatus }) => {
   if (status === "saving")
     return (
-      <span className="flex items-center gap-1 text-xs text-stone-600">
+      <span className="flex items-center gap-1 text-xs text-amber-100/60">
         <Loader2 size={12} className="animate-spin" aria-hidden="true" /> Saving…
       </span>
     );
   if (status === "saved")
     return (
-      <span className="flex items-center gap-1 text-xs text-stone-600">
+      <span className="flex items-center gap-1 text-xs text-amber-100/60">
         <Check size={12} aria-hidden="true" /> Saved
       </span>
     );
   if (status === "error")
     return (
-      <span className="flex items-center gap-1 text-xs font-semibold text-destructive">
+      <span className="flex items-center gap-1 text-xs font-semibold text-red-400">
         <CloudOff size={12} aria-hidden="true" /> Not saved — check your connection
       </span>
     );
@@ -53,6 +55,7 @@ export const Index = () => {
   const [filter, setFilter] = useState<PoemFilter>(emptyFilter);
   const [openId, setOpenId] = useState<string | null>(null);
   const [freshId, setFreshId] = useState<string | null>(null);
+  const [freshPrompt, setFreshPrompt] = useState<string | null>(null);
   const [insightsOpen, setInsightsOpen] = useState(false);
 
   const written = useMemo(() => poems.filter(isWritten), [poems]);
@@ -70,11 +73,13 @@ export const Index = () => {
     if (openId) discardIfEmpty(openId);
     setOpenId(null);
     setFreshId(null);
+    setFreshPrompt(null);
   };
 
-  const writeNew = () => {
-    const id = createPoem();
+  const writeNew = (prompt?: WritingPrompt) => {
+    const id = createPoem({ mood: prompt?.mood ?? null });
     setFreshId(id);
+    setFreshPrompt(prompt?.prompt ?? null);
     setOpenId(id);
   };
 
@@ -105,8 +110,11 @@ export const Index = () => {
 
   return (
     <div className="room-backdrop flex min-h-screen flex-col items-center px-4 py-6 sm:py-10">
+      <p className="neon-amber mb-5 animate-neon-flicker font-['Dancing_Script',cursive] text-3xl sm:text-4xl" aria-hidden="true">
+        The poetry room
+      </p>
       {isOwner && viewAsGuest && (
-        <div className="mb-4 flex w-full max-w-3xl flex-wrap items-center justify-between gap-2 rounded-md bg-stone-800 px-4 py-2 text-sm text-amber-100" role="status">
+        <div className="mb-4 flex w-full max-w-3xl flex-wrap items-center justify-between gap-2 rounded-md border border-amber-400/30 bg-amber-400/10 px-4 py-2 text-sm text-amber-100" role="status">
           <span className="flex items-center gap-2">
             <Eye size={14} aria-hidden="true" /> Guest view: this is exactly what friends with the reader's code see.
           </span>
@@ -117,7 +125,7 @@ export const Index = () => {
       )}
 
       <header className="mb-4 flex w-full max-w-3xl items-center justify-between gap-3">
-        <p className="font-display text-sm italic text-stone-700">
+        <p className="font-display text-sm italic text-amber-100/70">
           {isAdmin ? "Welcome back. The house is yours." : "Pull up a chair and read a while."}
         </p>
         <div className="flex items-center gap-2">
@@ -131,25 +139,33 @@ export const Index = () => {
                 setViewAsGuest((v) => !v);
               }}
               aria-pressed={viewAsGuest}
-              className={`${pill} bg-stone-300/70 text-stone-800 hover:bg-stone-300`}
+              className={`${pill} border border-amber-100/20 bg-black/30 text-amber-100/85 hover:text-amber-50`}
             >
               {viewAsGuest ? <EyeOff size={12} aria-hidden="true" /> : <Eye size={12} aria-hidden="true" />}
               {viewAsGuest ? "Admin view" : "View as guest"}
             </button>
           )}
           {isAdmin && (
-            <button type="button" onClick={() => setInsightsOpen(true)} className={`${pill} bg-stone-800 text-amber-100 hover:bg-stone-700`}>
+            <button type="button" onClick={() => setInsightsOpen(true)} className={`${pill} brass-plate text-stone-900 hover:brightness-110`}>
               <BarChart3 size={12} aria-hidden="true" /> Insights
             </button>
           )}
-          <button type="button" onClick={leave} className={`${pill} bg-stone-300/70 text-stone-800 hover:bg-stone-300`}>
+          <button type="button" onClick={leave} className={`${pill} border border-amber-100/20 bg-black/30 text-amber-100/85 hover:text-amber-50`}>
             <LogOut size={12} aria-hidden="true" /> Leave
           </button>
         </div>
       </header>
 
       <div className="shelf-cabinet relative w-full max-w-3xl">
-        <div className="shelf-crown h-5 rounded-t-sm" />
+        {/* Wall sconces either side, like the entrance */}
+        <div className="pointer-events-none absolute -left-24 top-40 hidden h-28 w-28 animate-candle rounded-full bg-amber-500/25 blur-3xl lg:block" aria-hidden="true" />
+        <div className="pointer-events-none absolute -right-24 top-40 hidden h-28 w-28 animate-candle rounded-full bg-amber-500/25 blur-3xl lg:block" aria-hidden="true" />
+
+        <div className="shelf-crown flex h-10 items-center justify-center rounded-t-[8px]">
+          <span className="brass-plate rounded-sm px-4 py-0.5 font-display text-[11px] font-semibold uppercase tracking-[0.3em] text-stone-900">
+            Poems by JK
+          </span>
+        </div>
 
         <div className="shelf-back mx-3 sm:mx-5">
           <div className="flex animate-fade-in justify-center pb-4 pt-8">
@@ -199,7 +215,7 @@ export const Index = () => {
 
           {isAdmin ? (
             <div className="flex flex-wrap items-center justify-center gap-3 pb-5 pt-6">
-              <button type="button" onClick={writeNew} className={`${pill} bg-amber-600 text-amber-50 hover:bg-amber-500`}>
+              <button type="button" onClick={() => writeNew()} className={`${pill} bg-amber-600 text-amber-50 hover:bg-amber-500`}>
                 <Plus size={12} aria-hidden="true" /> Write a new poem
               </button>
               <button
@@ -209,17 +225,19 @@ export const Index = () => {
                     .then(() => toast.success("All your poems are copied. Paste them anywhere to save or share."))
                     .catch(() => toast.error("Couldn't copy your poems. Please try again."));
                 }}
-                className={`${pill} bg-secondary text-secondary-foreground opacity-80 hover:opacity-100`}
+                className={`${pill} border border-amber-100/20 bg-black/30 text-amber-100/85 hover:text-amber-50`}
               >
                 <Copy size={12} aria-hidden="true" /> Copy all
               </button>
-              <button type="button" onClick={() => void paste()} className={`${pill} bg-primary text-primary-foreground opacity-80 hover:opacity-100`}>
+              <button type="button" onClick={() => void paste()} className={`${pill} border border-amber-100/20 bg-black/30 text-amber-100/85 hover:text-amber-50`}>
                 <ClipboardPaste size={12} aria-hidden="true" /> Paste poems
               </button>
             </div>
           ) : (
             <div className="pb-5 pt-6" />
           )}
+
+          {isAdmin && <WritingPrompts poems={written} onWrite={writeNew} />}
         </div>
 
         <div className="shelf-base h-6 rounded-b-sm" />
@@ -235,6 +253,7 @@ export const Index = () => {
           poem={openPoem}
           isAdmin={isAdmin}
           startEditing={openPoem.id === freshId}
+          prompt={openPoem.id === freshId ? (freshPrompt ?? undefined) : undefined}
           onClose={close}
           onPrevious={openIndex > 0 ? () => setOpenId(visible[openIndex - 1].id) : undefined}
           onNext={openIndex >= 0 && openIndex < visible.length - 1 ? () => setOpenId(visible[openIndex + 1].id) : undefined}
