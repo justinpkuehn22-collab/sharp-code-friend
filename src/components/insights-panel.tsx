@@ -41,7 +41,7 @@ export const InsightsPanel = ({ open, onOpenChange, poems, onOpenPoem }: Insight
       <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto border-amber-200/15 bg-[hsl(20,18%,9%)] text-amber-50">
         <DialogHeader>
           <DialogTitle className="font-display text-2xl text-amber-100">Library insights</DialogTitle>
-          <DialogDescription className="text-amber-100/55">Only you can see this. Empty poems aren't counted.</DialogDescription>
+          <DialogDescription className="sr-only">Statistics about your poems</DialogDescription>
         </DialogHeader>
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

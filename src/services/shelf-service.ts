@@ -75,3 +75,14 @@ export const codeFromInviteHash = (hash: string): string | null => {
     return null;
   }
 };
+
+export const inviteMessage = (link: string, code: string): string =>
+  `I'd love for you to read my poems. This link lets you straight in: ${link}\nIf it ever asks for the word, it's: ${code}`;
+
+// Which features the deployed backend supports (it can lag behind the site)
+export const fetchBackendFeatures = async (): Promise<string[]> => {
+  const res = await fetch(`${baseUrl}?action=status`, { headers: baseHeaders() });
+  if (!res.ok) return [];
+  const data = (await res.json()) as { features?: unknown };
+  return Array.isArray(data.features) ? data.features.filter((f): f is string => typeof f === "string") : [];
+};

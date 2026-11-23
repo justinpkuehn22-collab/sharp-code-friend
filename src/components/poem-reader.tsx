@@ -1,7 +1,15 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { createPortal } from "react-dom";
-import { ChevronLeft, ChevronRight, Copy, Keyboard, Lamp, LampDesk, NotebookPen, Pencil, Trash2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Copy, Keyboard, Lamp, LampDesk, MoreHorizontal, NotebookPen, Pencil, Trash2, X } from "lucide-react";
 import { RhymedPoem } from "@/components/rhymed-poem";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { WritersDesk } from "@/components/writers-desk";
 import { keySoundFor, playKeySound } from "@/lib/audio/typewriter-sound";
 import { useLoungeStore } from "@/stores/lounge-store";
@@ -24,6 +32,13 @@ interface PoemReaderProps {
   onPrevious?: () => void;
   onNext?: () => void;
 }
+
+const pillButton =
+  "flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-semibold shadow-xl transition-all duration-200 hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300";
+const quiet = "border border-amber-300/40 bg-stone-900 text-amber-100";
+
+const menuContent = "z-[70] w-52 border-amber-300/25 bg-stone-950/95 text-amber-100";
+const menuItem = "gap-2 focus:bg-white/10 focus:text-amber-50";
 
 const iconButton =
   "flex h-9 w-9 items-center justify-center rounded-full shadow-xl transition-all duration-200 hover:scale-110 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300";
@@ -89,6 +104,7 @@ export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onFinishedWrit
     }, 0);
   };
   const withDesk = isEditing && deskOpen;
+  const isFavorite = poem.kind === "favorite";
   const onTypeKey = (e: ReactKeyboardEvent<HTMLElement>) => {
     if (typewriterSounds && !e.repeat) playKeySound(keySoundFor(e.key, e.metaKey || e.ctrlKey || e.altKey));
   };
@@ -145,7 +161,10 @@ export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onFinishedWrit
   }, [isEditing, revealed, skipAll, close, onPrevious, onNext]);
 
   const onDelete = () => {
-    if (window.confirm(`Remove "${poem.title.trim() || "this poem"}" from your shelf? It stays in your backups.`)) {
+    const question = poem.kind === "favorite"
+      ? `Take "${poem.title.trim()}" off your favorites shelf?`
+      : `Remove "${poem.title.trim() || "this poem"}" from your shelf? It stays in your backups.`;
+    if (window.confirm(question)) {
       deletePoem(poem.id);
       onClose();
     }
@@ -186,62 +205,68 @@ export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onFinishedWrit
       )}
 
       <div className={cn("relative z-10 flex max-h-[88vh] w-full animate-typewriter-roll flex-col", withDesk ? "max-w-5xl" : "max-w-xl")}>
-        <div className="absolute -right-4 -top-4 z-20 flex gap-2">
+        {/* The main actions stay visible; the rest live in the ⋯ menu */}
+        <div className="absolute -right-3 -top-4 z-20 flex max-w-[calc(100vw-2rem)] flex-wrap justify-end gap-1.5">
           {!isEditing && (
             <button
               type="button"
               onClick={() => setShowRhymes(!showRhymes)}
               aria-pressed={showRhymes}
-              className={cn(
-                "flex h-9 items-center rounded-full px-3 text-xs font-semibold shadow-xl transition hover:scale-105",
-                showRhymes ? "bg-amber-400 text-stone-900" : "border border-amber-300/40 bg-stone-900 text-amber-100",
-              )}
+              className={cn(pillButton, showRhymes ? "bg-amber-400 text-stone-900" : quiet)}
             >
               {showRhymes ? "Hide rhymes" : "Rhyme scheme"}
             </button>
           )}
           {isEditing && (
-            <>
-              <button
-                type="button"
-                onClick={() => setDeskOpen((v) => !v)}
-                aria-pressed={deskOpen}
-                className={cn(iconButton, deskOpen ? "bg-amber-400 text-stone-900" : "border border-amber-300/40 bg-stone-900 text-amber-100")}
-                aria-label={deskOpen ? "Hide the writer's desk" : "Show the writer's desk"}
-                title="Writer's desk"
-              >
-                <NotebookPen size={14} />
-              </button>
-              <button
-                type="button"
-                onClick={() => setLightsDown((v) => !v)}
-                aria-pressed={lightsDown}
-                className={cn(iconButton, lightsDown ? "bg-amber-400 text-stone-900" : "border border-amber-300/40 bg-stone-900 text-amber-100")}
-                aria-label={lightsDown ? "Bring the lights up" : "Turn the lights down"}
-                title="Lights down"
-              >
-                {lightsDown ? <LampDesk size={14} /> : <Lamp size={14} />}
-              </button>
-            </>
-          )}
-          {isAdmin && !isEditing && (
-            <button type="button" onClick={() => setIsEditing(true)} className={cn(iconButton, "bg-amber-600 text-amber-50")} aria-label="Edit poem">
-              <Pencil size={14} />
+            <button
+              type="button"
+              onClick={() => setDeskOpen((v) => !v)}
+              aria-pressed={deskOpen}
+              className={cn(pillButton, deskOpen ? "bg-amber-400 text-stone-900" : quiet)}
+            >
+              <NotebookPen size={13} aria-hidden="true" /> {deskOpen ? "Hide desk" : "Writer's desk"}
             </button>
           )}
-          <button type="button" onClick={onCopy} className={cn(iconButton, "border border-amber-300/40 bg-stone-900 text-amber-100")} aria-label="Copy poem">
-            <Copy size={14} />
-          </button>
-          <button type="button" onClick={close} className={cn(iconButton, "brass-plate text-stone-900")} aria-label="Close poem">
-            <X size={16} />
+          {isAdmin && !isEditing && !isFavorite && (
+            <button type="button" onClick={() => setIsEditing(true)} className={cn(pillButton, "bg-amber-600 text-amber-50")}>
+              <Pencil size={13} aria-hidden="true" /> Edit
+            </button>
+          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button type="button" className={cn(pillButton, quiet, "px-2.5")} aria-label="More options">
+                <MoreHorizontal size={15} aria-hidden="true" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className={menuContent}>
+              {isEditing && (
+                <>
+                  <DropdownMenuItem className={menuItem} onSelect={() => setLightsDown((v) => !v)}>
+                    {lightsDown ? <LampDesk size={14} aria-hidden="true" /> : <Lamp size={14} aria-hidden="true" />}
+                    {lightsDown ? "Lights up" : "Lights down"}
+                  </DropdownMenuItem>
+                  <DropdownMenuCheckboxItem className={menuItem} checked={typewriterSounds} onCheckedChange={(v) => setTypewriterSounds(v === true)}>
+                    <Keyboard size={14} aria-hidden="true" /> Typewriter sounds
+                  </DropdownMenuCheckboxItem>
+                </>
+              )}
+              <DropdownMenuItem className={menuItem} onSelect={onCopy}>
+                <Copy size={14} aria-hidden="true" /> Copy the poem
+              </DropdownMenuItem>
+              {isAdmin && (
+                <>
+                  <DropdownMenuSeparator className="bg-amber-100/10" />
+                  <DropdownMenuItem className={cn(menuItem, "text-red-300 focus:text-red-200")} onSelect={onDelete}>
+                    <Trash2 size={14} aria-hidden="true" /> {isFavorite ? "Remove from favorites" : "Delete poem"}
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <button type="button" onClick={close} className={cn(pillButton, "brass-plate text-stone-900")}>
+            <X size={14} aria-hidden="true" /> Close
           </button>
         </div>
-
-        {isAdmin && (
-          <button type="button" onClick={onDelete} className={cn(iconButton, "absolute -left-4 -top-4 z-20 bg-destructive text-destructive-foreground")} aria-label="Delete poem">
-            <Trash2 size={14} />
-          </button>
-        )}
 
         <div className="relative flex min-h-0 flex-col overflow-hidden rounded-md bg-[hsl(30,10%,8%)] shadow-[0_30px_80px_rgba(0,0,0,0.6),inset_0_0_0_1px_rgba(255,255,255,0.05)]">
           <div className="h-[2px] bg-gradient-to-r from-transparent via-[hsl(38,55%,50%)] to-transparent" />
@@ -302,8 +327,8 @@ export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onFinishedWrit
                   placeholder="Write your poem here…"
                   aria-label="Poem"
                 />
-                <div className="mt-4 flex items-center justify-between gap-3">
-                  {hasContent ? (
+                {hasContent && (
+                  <div className="mt-4">
                     <button
                       type="button"
                       onClick={() => {
@@ -314,21 +339,8 @@ export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onFinishedWrit
                     >
                       Done editing
                     </button>
-                  ) : (
-                    <span />
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setTypewriterSounds(!typewriterSounds)}
-                    aria-pressed={typewriterSounds}
-                    className={cn(
-                      "flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs transition",
-                      typewriterSounds ? "border-amber-400/60 text-amber-100" : "border-amber-100/15 text-amber-100/45",
-                    )}
-                  >
-                    <Keyboard size={12} aria-hidden="true" /> Typewriter sounds {typewriterSounds ? "on" : "off"}
-                  </button>
-                </div>
+                  </div>
+                )}
               </>
             ) : (
               <div
@@ -371,9 +383,10 @@ export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onFinishedWrit
                 )}
 
                 {revealed && (
-                  <p className="mt-12 animate-fade-in text-right font-['Dancing_Script',cursive] text-2xl tracking-[0.02em] text-[hsl(38,55%,55%)] sm:text-3xl">— JK</p>
+                  <p className="mt-12 animate-fade-in text-right font-['Dancing_Script',cursive] text-2xl tracking-[0.02em] text-[hsl(38,55%,55%)] sm:text-3xl">
+                    — {isFavorite ? poem.author : "JK"}
+                  </p>
                 )}
-                {!revealed && <p className="mt-10 text-center text-xs text-amber-100/25">Tap or press Enter to reveal the whole poem</p>}
               </div>
             )}
           </div>

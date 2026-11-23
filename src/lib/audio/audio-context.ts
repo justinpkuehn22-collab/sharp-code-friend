@@ -12,8 +12,8 @@ export const getAudioContext = (): AudioContext | null => {
 };
 
 // White noise, reused by the typewriter, the brushes and the vinyl crackle
-const noiseCache = new WeakMap<AudioContext, AudioBuffer>();
-export const noiseBuffer = (ctx: AudioContext): AudioBuffer => {
+const noiseCache = new WeakMap<BaseAudioContext, AudioBuffer>();
+export const noiseBuffer = (ctx: BaseAudioContext): AudioBuffer => {
   const cached = noiseCache.get(ctx);
   if (cached) return cached;
   const buffer = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);

@@ -198,6 +198,8 @@ Deno.serve(async (req) => {
       adminSecretName: codes.adminFrom,
       readerCodeSet: codes.reader !== null,
       readerSecretName: codes.readerFrom,
+      // Lets the site know this backend can store favorites from the library
+      features: ["favorites"],
     });
   }
 

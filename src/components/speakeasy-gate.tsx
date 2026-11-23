@@ -195,7 +195,7 @@ export const SpeakeasyGate = ({ children }: { children: ReactNode }) => {
           <p className="mt-3 min-h-[2.5rem] text-center text-sm text-amber-100/70" role="status" aria-live="polite">
             {loadFailed
               ? "You're in, but the shelf didn't load. Refresh to try again."
-              : message || "Capital letters and spaces don't matter."}
+              : message}
           </p>
 
           <button
@@ -211,9 +211,6 @@ export const SpeakeasyGate = ({ children }: { children: ReactNode }) => {
         </form>
       </div>
 
-      <p className="mt-8 max-w-xs text-center text-xs text-amber-100/40">
-        Friends get a reader's code. The house has its own.
-      </p>
     </main>
   );
 };

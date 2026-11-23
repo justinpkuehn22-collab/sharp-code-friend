@@ -14,6 +14,8 @@ const poem = (overrides: Partial<Poem>): Poem => ({
   mood: null,
   createdAt: null,
   updatedAt: null,
+  kind: "own",
+  author: null,
   ...overrides,
 });
 

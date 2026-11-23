@@ -1,4 +1,6 @@
-// Simple spelling-based rhyme detection: good enough to spot end rhymes in free verse
+// Rhyme detection for line endings. Sound-based (see rhyme-sounds.ts), with a spelling
+// check as a back-up so eye rhymes like "love" / "move" still count as slant.
+import { classifyRhyme, lineEnding, rhymeKindOrder, type RhymeKind } from "@/lib/rhyme-sounds";
 
 const ending = (word: string): string => {
   const clean = word.replace(/[^a-z]/gi, "").toLowerCase();
@@ -48,54 +50,95 @@ export const rhymeSound = (word: string): string => {
 
 const rhymes = (a: string, b: string): boolean => a === b || (a.length >= 2 && b.length >= 2 && a.slice(-2) === b.slice(-2));
 
-// Returns, for each line index that rhymes with at least one other line, its rhyme group
-export const rhymeGroups = (text: string): Map<number, number> => {
-  const groups: string[][] = [];
-  const lineGroup = new Map<number, number>();
-  text.split("\n").forEach((line, idx) => {
-    const word = lastWord(line);
-    if (!word) return;
-    const end = rhymeSound(word);
-    if (!end) return;
-    let group = groups.findIndex((g) => g.some((e) => rhymes(e, end)));
-    if (group === -1) {
-      groups.push([end]);
-      group = groups.length - 1;
-    } else {
-      groups[group].push(end);
+export interface LineRhyme {
+  // Letter in the rhyme scheme; null for blank lines
+  letter: string | null;
+  // Shared by lines that rhyme; null if the line rhymes with nothing
+  group: number | null;
+  // How this line rhymes with its partners: the strongest kind it has
+  kind: RhymeKind | null;
+}
+
+const strength = (k: RhymeKind | null) => (k ? rhymeKindOrder.length - rhymeKindOrder.indexOf(k) : 0);
+
+const pairKind = (a: string, b: string): RhymeKind | null => {
+  const ea = lineEnding(a);
+  const eb = lineEnding(b);
+  const bySound = ea && eb ? classifyRhyme(ea, eb) : null;
+  if (bySound) return bySound;
+  const wa = lastWord(a);
+  const wb = lastWord(b);
+  // Spelled alike: an eye rhyme, which poets count as slant
+  if (wa && wb && rhymes(rhymeSound(wa), rhymeSound(wb))) return "slant";
+  return null;
+};
+
+const cache = new Map<string, LineRhyme[]>();
+
+// Every line's rhyme letter, group and kind
+export const analyzeRhymes = (text: string): LineRhyme[] => {
+  const cached = cache.get(text);
+  if (cached) return cached;
+  const lines = text.split("\n");
+  const groupOf: Array<number | null> = lines.map(() => null);
+  const kindOf: Array<RhymeKind | null> = lines.map(() => null);
+  let nextGroup = 0;
+  const written = lines.map((l) => lastWord(l) !== null);
+
+  lines.forEach((line, i) => {
+    if (!written[i]) return;
+    let best: { j: number; kind: RhymeKind } | null = null;
+    for (let j = i - 1; j >= 0; j--) {
+      if (!written[j]) continue;
+      const kind = pairKind(line, lines[j]);
+      if (kind && (!best || strength(kind) > strength(best.kind))) best = { j, kind };
     }
-    lineGroup.set(idx, group);
+    if (best) {
+      const g = groupOf[best.j] ?? nextGroup++;
+      groupOf[best.j] = g;
+      groupOf[i] = g;
+      kindOf[i] = best.kind;
+      if (strength(best.kind) > strength(kindOf[best.j])) kindOf[best.j] = best.kind;
+    }
   });
-  const result = new Map<number, number>();
-  for (const [line, group] of lineGroup) if (groups[group].length >= 2) result.set(line, group);
-  return result;
-};
 
-// Share of non-empty lines whose last word rhymes with another line's (0 to 1)
-export const rhymeDensity = (text: string): number => {
-  const lines = text.split("\n").filter((l) => lastWord(l) !== null);
-  if (lines.length === 0) return 0;
-  return rhymeGroups(text).size / lines.length;
-};
-
-// Letters for each line's rhyme sound: rhyming lines share a letter, others get their own.
-// Blank lines are null so stanzas stay visible ("ABAB CDCD").
-export const rhymeLetters = (text: string): Array<string | null> => {
-  const groups = rhymeGroups(text);
+  // Letters in order of appearance; lines that rhyme with nothing get a letter of their own
   const letterForGroup = new Map<number, string>();
   let next = 0;
   const nextLetter = () => {
     const n = next++;
     return n < 26 ? String.fromCharCode(65 + n) : `${String.fromCharCode(65 + (n % 26))}${Math.floor(n / 26)}`;
   };
-  return text.split("\n").map((line, i) => {
-    if (lastWord(line) === null) return null;
-    const group = groups.get(i);
-    if (group === undefined) return nextLetter();
-    if (!letterForGroup.has(group)) letterForGroup.set(group, nextLetter());
-    return letterForGroup.get(group) ?? null;
+  const result = lines.map((_, i): LineRhyme => {
+    if (!written[i]) return { letter: null, group: null, kind: null };
+    const g = groupOf[i];
+    if (g === null) return { letter: nextLetter(), group: null, kind: null };
+    if (!letterForGroup.has(g)) letterForGroup.set(g, nextLetter());
+    return { letter: letterForGroup.get(g) ?? null, group: g, kind: kindOf[i] };
   });
+  if (cache.size > 200) cache.clear();
+  cache.set(text, result);
+  return result;
 };
+
+// For each line that rhymes with at least one other line, its rhyme group
+export const rhymeGroups = (text: string): Map<number, number> => {
+  const groups = new Map<number, number>();
+  analyzeRhymes(text).forEach((r, i) => {
+    if (r.group !== null) groups.set(i, r.group);
+  });
+  return groups;
+};
+
+// Share of non-empty lines whose ending rhymes, in any way, with another line's (0 to 1)
+export const rhymeDensity = (text: string): number => {
+  const lines = text.split("\n").filter((l) => lastWord(l) !== null);
+  if (lines.length === 0) return 0;
+  return rhymeGroups(text).size / lines.length;
+};
+
+// Letters for each line's rhyme sound; blank lines are null so stanzas stay visible
+export const rhymeLetters = (text: string): Array<string | null> => analyzeRhymes(text).map((r) => r.letter);
 
 export const rhymeSchemeText = (text: string): string =>
   rhymeLetters(text)
@@ -103,3 +146,10 @@ export const rhymeSchemeText = (text: string): string =>
     .join("")
     .replace(/ +/g, " ")
     .trim();
+
+// How many lines rhyme in each way
+export const rhymeKindCounts = (text: string): Record<RhymeKind, number> => {
+  const counts: Record<RhymeKind, number> = { perfect: 0, multi: 0, slant: 0, consonance: 0 };
+  for (const r of analyzeRhymes(text)) if (r.kind) counts[r.kind]++;
+  return counts;
+};
