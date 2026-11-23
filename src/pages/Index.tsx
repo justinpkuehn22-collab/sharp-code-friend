@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { BarChart3, Check, ClipboardPaste, Copy, CloudOff, Loader2, LogOut, Plus } from "lucide-react";
+import { BarChart3, Check, Eye, EyeOff, ClipboardPaste, Copy, CloudOff, Loader2, LogOut, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { usePoemStore } from "@/stores/poem-store";
 import { useSessionStore } from "@/stores/session-store";
@@ -43,8 +43,11 @@ const SaveIndicator = ({ status }: { status: SaveStatus }) => {
 export const Index = () => {
   const { poems, createPoem, discardIfEmpty, importPoems } = usePoemStore();
   const { token, role, signOut } = useSessionStore();
-  const isAdmin = role === "admin";
-  const saveStatus = useShelfAutosave(token, isAdmin);
+  const isOwner = role === "admin";
+  // Lets the owner see the shelf exactly as guests with the reader's code do
+  const [viewAsGuest, setViewAsGuest] = useState(false);
+  const isAdmin = isOwner && !viewAsGuest;
+  const saveStatus = useShelfAutosave(token, isOwner);
 
   const booksPerShelf = useIsMobile() ? 5 : 7;
   const [filter, setFilter] = useState<PoemFilter>(emptyFilter);
@@ -93,7 +96,7 @@ export const Index = () => {
   };
 
   const leave = () => {
-    if (isAdmin && saveStatus === "saving") {
+    if (isOwner && saveStatus === "saving") {
       toast.message("Hold on, still saving your last change.");
       return;
     }
@@ -102,12 +105,38 @@ export const Index = () => {
 
   return (
     <div className="room-backdrop flex min-h-screen flex-col items-center px-4 py-6 sm:py-10">
+      {isOwner && viewAsGuest && (
+        <div className="mb-4 flex w-full max-w-3xl flex-wrap items-center justify-between gap-2 rounded-md bg-stone-800 px-4 py-2 text-sm text-amber-100" role="status">
+          <span className="flex items-center gap-2">
+            <Eye size={14} aria-hidden="true" /> Guest view: this is exactly what friends with the reader's code see.
+          </span>
+          <button type="button" onClick={() => setViewAsGuest(false)} className="font-semibold underline hover:text-amber-50">
+            Back to admin
+          </button>
+        </div>
+      )}
+
       <header className="mb-4 flex w-full max-w-3xl items-center justify-between gap-3">
         <p className="font-display text-sm italic text-stone-700">
           {isAdmin ? "Welcome back. The house is yours." : "Pull up a chair and read a while."}
         </p>
         <div className="flex items-center gap-2">
           {isAdmin && <SaveIndicator status={saveStatus} />}
+          {isOwner && (
+            <button
+              type="button"
+              onClick={() => {
+                setOpenId(null);
+                setInsightsOpen(false);
+                setViewAsGuest((v) => !v);
+              }}
+              aria-pressed={viewAsGuest}
+              className={`${pill} bg-stone-300/70 text-stone-800 hover:bg-stone-300`}
+            >
+              {viewAsGuest ? <EyeOff size={12} aria-hidden="true" /> : <Eye size={12} aria-hidden="true" />}
+              {viewAsGuest ? "Admin view" : "View as guest"}
+            </button>
+          )}
           {isAdmin && (
             <button type="button" onClick={() => setInsightsOpen(true)} className={`${pill} bg-stone-800 text-amber-100 hover:bg-stone-700`}>
               <BarChart3 size={12} aria-hidden="true" /> Insights
