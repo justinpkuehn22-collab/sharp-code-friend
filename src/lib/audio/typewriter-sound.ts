@@ -12,77 +12,89 @@ export const keySoundFor = (key: string, withModifier: boolean): KeySound => {
   return null;
 };
 
-const clack = (ctx: AudioContext, at: number, brightness: number, loudness: number) => {
-  // The strike: a short burst of filtered noise
-  const noise = ctx.createBufferSource();
-  noise.buffer = noiseBuffer(ctx);
-  const band = ctx.createBiquadFilter();
-  band.type = "bandpass";
-  band.frequency.value = brightness * (0.85 + Math.random() * 0.3);
-  band.Q.value = 1.4;
-  const noiseGain = ctx.createGain();
-  noiseGain.gain.setValueAtTime(loudness, at);
-  noiseGain.gain.exponentialRampToValueAtTime(0.001, at + 0.045);
-  noise.connect(band).connect(noiseGain).connect(ctx.destination);
-  noise.start(at, Math.random() * 0.5, 0.06);
+const jitter = (amount: number) => 1 + (Math.random() - 0.5) * amount;
 
-  // The body: a low knock as the typebar lands
-  const thump = ctx.createOscillator();
-  thump.type = "sine";
-  thump.frequency.setValueAtTime(170 + Math.random() * 40, at);
-  thump.frequency.exponentialRampToValueAtTime(70, at + 0.04);
-  const thumpGain = ctx.createGain();
-  thumpGain.gain.setValueAtTime(loudness * 0.9, at);
-  thumpGain.gain.exponentialRampToValueAtTime(0.001, at + 0.05);
-  thump.connect(thumpGain).connect(ctx.destination);
-  thump.start(at);
-  thump.stop(at + 0.06);
+// A very short burst of filtered noise: the basic "tick" of metal on metal
+const tick = (
+  ctx: BaseAudioContext,
+  out: AudioNode,
+  at: number,
+  opts: { freq: number; q: number; level: number; decay: number; type?: BiquadFilterType },
+) => {
+  const src = ctx.createBufferSource();
+  src.buffer = noiseBuffer(ctx);
+  const filter = ctx.createBiquadFilter();
+  filter.type = opts.type ?? "bandpass";
+  filter.frequency.value = opts.freq * jitter(0.12);
+  filter.Q.value = opts.q;
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0.0001, at);
+  gain.gain.linearRampToValueAtTime(opts.level, at + 0.0008);
+  gain.gain.exponentialRampToValueAtTime(0.0001, at + opts.decay);
+  src.connect(filter).connect(gain).connect(out);
+  src.start(at, Math.random() * 0.8, opts.decay + 0.02);
 };
 
-const bell = (ctx: AudioContext, at: number) => {
-  for (const [freq, level] of [
-    [2093, 0.12],
-    [3136, 0.05],
-    [4186, 0.025],
+// The typebar strikes the paper: a crisp, bright snap with a little ring,
+// then the key springs back a moment later with a softer tick
+const keystroke = (ctx: BaseAudioContext, out: AudioNode, at: number, weight: number) => {
+  const level = 0.22 * weight * jitter(0.25);
+  tick(ctx, out, at, { freq: 4200, q: 0.9, level, decay: 0.018, type: "highpass" });
+  tick(ctx, out, at, { freq: 3100, q: 9, level: level * 0.55, decay: 0.045 });
+  tick(ctx, out, at + 0.002, { freq: 1500, q: 2.5, level: level * 0.35, decay: 0.022 });
+  tick(ctx, out, at + 0.075 * jitter(0.3), { freq: 2600, q: 3, level: level * 0.3, decay: 0.014 });
+};
+
+const spacebar = (ctx: BaseAudioContext, out: AudioNode, at: number) => {
+  // Wider bar, duller and woodier, and a rattle as it settles
+  tick(ctx, out, at, { freq: 1100, q: 1.6, level: 0.2, decay: 0.035 });
+  tick(ctx, out, at, { freq: 3600, q: 1, level: 0.09, decay: 0.015, type: "highpass" });
+  tick(ctx, out, at + 0.07, { freq: 1800, q: 4, level: 0.06, decay: 0.02 });
+};
+
+const bell = (ctx: BaseAudioContext, out: AudioNode, at: number) => {
+  for (const [freq, level, decay] of [
+    [2349, 0.09, 1.3],
+    [3520, 0.035, 0.9],
+    [5870, 0.015, 0.5],
   ] as const) {
     const osc = ctx.createOscillator();
     osc.type = "sine";
     osc.frequency.value = freq;
     const gain = ctx.createGain();
-    gain.gain.setValueAtTime(level, at);
-    gain.gain.exponentialRampToValueAtTime(0.0005, at + 1.1);
-    osc.connect(gain).connect(ctx.destination);
+    gain.gain.setValueAtTime(0.0001, at);
+    gain.gain.linearRampToValueAtTime(level, at + 0.003);
+    gain.gain.exponentialRampToValueAtTime(0.0001, at + decay);
+    osc.connect(gain).connect(out);
     osc.start(at);
-    osc.stop(at + 1.2);
+    osc.stop(at + decay + 0.05);
   }
 };
 
-const carriage = (ctx: AudioContext, at: number) => {
-  const noise = ctx.createBufferSource();
-  noise.buffer = noiseBuffer(ctx);
-  const low = ctx.createBiquadFilter();
-  low.type = "bandpass";
-  low.frequency.setValueAtTime(900, at);
-  low.frequency.linearRampToValueAtTime(500, at + 0.28);
-  const gain = ctx.createGain();
-  gain.gain.setValueAtTime(0.0001, at);
-  gain.gain.linearRampToValueAtTime(0.12, at + 0.05);
-  gain.gain.linearRampToValueAtTime(0.0001, at + 0.3);
-  noise.connect(low).connect(gain).connect(ctx.destination);
-  noise.start(at, 0, 0.32);
+// Carriage return: the bell, the lever pulled, a run of ratchet clicks as the
+// carriage slides back, and a solid stop at the end
+const carriageReturn = (ctx: BaseAudioContext, out: AudioNode, at: number) => {
+  bell(ctx, out, at);
+  tick(ctx, out, at + 0.12, { freq: 900, q: 1.5, level: 0.1, decay: 0.05 });
+  const clicks = 9;
+  for (let i = 0; i < clicks; i++) {
+    const t = at + 0.16 + i * 0.026 * (1 + i * 0.03);
+    tick(ctx, out, t, { freq: 3300, q: 6, level: 0.07 * (1 - i / (clicks * 1.4)), decay: 0.012 });
+  }
+  tick(ctx, out, at + 0.46, { freq: 1300, q: 1.8, level: 0.16, decay: 0.05 });
+  tick(ctx, out, at + 0.46, { freq: 4000, q: 1, level: 0.07, decay: 0.02, type: "highpass" });
+};
+
+export const scheduleKeySound = (ctx: BaseAudioContext, out: AudioNode, sound: KeySound, at: number): void => {
+  if (sound === "key") keystroke(ctx, out, at, 1);
+  if (sound === "backspace") keystroke(ctx, out, at, 0.7);
+  if (sound === "space") spacebar(ctx, out, at);
+  if (sound === "return") carriageReturn(ctx, out, at);
 };
 
 export const playKeySound = (sound: KeySound): void => {
   if (!sound) return;
   const ctx = getAudioContext();
   if (!ctx) return;
-  const at = ctx.currentTime + 0.005;
-  if (sound === "key") clack(ctx, at, 3200, 0.35);
-  if (sound === "backspace") clack(ctx, at, 2200, 0.22);
-  if (sound === "space") clack(ctx, at, 1400, 0.3);
-  if (sound === "return") {
-    bell(ctx, at);
-    carriage(ctx, at + 0.08);
-    clack(ctx, at + 0.38, 1200, 0.35);
-  }
+  scheduleKeySound(ctx, ctx.destination, sound, ctx.currentTime + 0.003);
 };

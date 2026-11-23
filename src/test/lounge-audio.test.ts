@@ -1,13 +1,30 @@
 import { describe, expect, it } from "vitest";
-import { buildBar, chordAt, form, swing } from "@/lib/audio/jazz-score";
+import { buildBar, chordAt, songbook, swing, tuneSeconds } from "@/lib/audio/jazz-score";
 import { keySoundFor } from "@/lib/audio/typewriter-sound";
 import { midiToFrequency } from "@/lib/audio/audio-context";
 
-describe("house band score", () => {
-  it("is a 32-bar tune that loops", () => {
-    expect(form).toHaveLength(32);
-    expect(chordAt(32).name).toBe(chordAt(0).name);
-    expect(chordAt(-1).name).toBe(chordAt(31).name);
+describe("house band songbook", () => {
+  it("has five records, each playing for a few minutes", () => {
+    expect(songbook).toHaveLength(5);
+    expect(new Set(songbook.map((t) => t.id)).size).toBe(5);
+    for (const tune of songbook) {
+      expect(tuneSeconds(tune)).toBeGreaterThan(120);
+      expect(tuneSeconds(tune)).toBeLessThan(420);
+    }
+    // The whole playlist runs well past twenty minutes before repeating
+    expect(songbook.reduce((sum, t) => sum + tuneSeconds(t), 0)).toBeGreaterThan(20 * 60);
+  });
+
+  it("includes the blues", () => {
+    expect(songbook.filter((t) => t.style === "blues").length).toBeGreaterThanOrEqual(2);
+    expect(songbook.find((t) => t.id === "smoke-gin")?.form).toHaveLength(12);
+  });
+
+  it("loops each tune's form", () => {
+    const tune = songbook[0];
+    expect(tune.form).toHaveLength(32);
+    expect(chordAt(tune, 32).name).toBe(chordAt(tune, 0).name);
+    expect(chordAt(tune, -1).name).toBe(chordAt(tune, 31).name);
   });
 
   it("swings the off-beats", () => {
@@ -15,32 +32,44 @@ describe("house band score", () => {
     expect(swing(1.5)).toBeCloseTo(1 + 2 / 3);
   });
 
-  it("walks the bass four to the bar, starting on the root and leading into the next chord", () => {
+  it("walks the swing bass into the next chord", () => {
+    const tune = songbook[0];
     for (let bar = 0; bar < 32; bar++) {
-      const bass = buildBar(bar, 3).filter((e) => e.voice === "bass");
+      const bass = buildBar(tune, bar, 3).filter((e) => e.voice === "bass");
       expect(bass.map((e) => e.beat)).toEqual([0, 1, 2, 3]);
-      expect(bass[0].notes[0]).toBe(chordAt(bar).root);
-      expect(Math.abs(bass[3].notes[0] - chordAt(bar + 1).root)).toBe(1);
+      expect(bass[0].notes[0]).toBe(chordAt(tune, bar).root);
+      expect(Math.abs(bass[3].notes[0] - chordAt(tune, bar + 1).root)).toBe(1);
     }
   });
 
-  it("keeps every note inside the bar and in a listenable range", () => {
-    for (let bar = 0; bar < 64; bar++) {
-      for (const e of buildBar(bar, 11)) {
-        expect(e.beat).toBeGreaterThanOrEqual(0);
-        expect(e.beat).toBeLessThan(4);
-        for (const n of e.notes) {
-          expect(n).toBeGreaterThanOrEqual(30);
-          expect(n).toBeLessThanOrEqual(96);
+  it("plays a boogie bass and bent blue notes in the blues", () => {
+    const tune = songbook.find((t) => t.id === "smoke-gin");
+    if (!tune) throw new Error("missing blues");
+    expect(buildBar(tune, 0, 1).filter((e) => e.voice === "bass")).toHaveLength(8);
+    const bends = Array.from({ length: 48 }, (_, bar) => buildBar(tune, bar, 5)).flat().filter((e) => e.slide);
+    expect(bends.length).toBeGreaterThan(0);
+  });
+
+  it("keeps every note inside the bar and in a listenable range, for every record", () => {
+    for (const tune of songbook) {
+      for (let bar = 0; bar < tune.form.length * 2; bar++) {
+        for (const e of buildBar(tune, bar, 11)) {
+          expect(e.beat).toBeGreaterThanOrEqual(0);
+          expect(e.beat).toBeLessThan(4);
+          for (const n of e.notes) {
+            expect(n).toBeGreaterThanOrEqual(24);
+            expect(n).toBeLessThanOrEqual(100);
+          }
         }
       }
     }
   });
 
   it("plays the same chorus for the same seed, and a different one for another", () => {
-    expect(buildBar(5, 2)).toEqual(buildBar(5, 2));
-    const a = JSON.stringify(Array.from({ length: 8 }, (_, i) => buildBar(i, 2)));
-    const b = JSON.stringify(Array.from({ length: 8 }, (_, i) => buildBar(i, 3)));
+    const tune = songbook[1];
+    expect(buildBar(tune, 5, 2)).toEqual(buildBar(tune, 5, 2));
+    const a = JSON.stringify(Array.from({ length: 8 }, (_, i) => buildBar(tune, i, 2)));
+    const b = JSON.stringify(Array.from({ length: 8 }, (_, i) => buildBar(tune, i, 3)));
     expect(a).not.toEqual(b);
   });
 });

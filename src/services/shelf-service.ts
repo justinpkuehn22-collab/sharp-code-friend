@@ -75,3 +75,6 @@ export const codeFromInviteHash = (hash: string): string | null => {
     return null;
   }
 };
+
+export const inviteMessage = (link: string, code: string): string =>
+  `I'd love for you to read my poems. This link lets you straight in: ${link}\nIf it ever asks for the word, it's: ${code}`;

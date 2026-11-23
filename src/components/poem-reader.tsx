@@ -25,6 +25,10 @@ interface PoemReaderProps {
   onNext?: () => void;
 }
 
+const pillButton =
+  "flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-semibold shadow-xl transition-all duration-200 hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300";
+const quiet = "border border-amber-300/40 bg-stone-900 text-amber-100";
+
 const iconButton =
   "flex h-9 w-9 items-center justify-center rounded-full shadow-xl transition-all duration-200 hover:scale-110 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300";
 
@@ -186,16 +190,15 @@ export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onFinishedWrit
       )}
 
       <div className={cn("relative z-10 flex max-h-[88vh] w-full animate-typewriter-roll flex-col", withDesk ? "max-w-5xl" : "max-w-xl")}>
-        <div className="absolute -right-4 -top-4 z-20 flex gap-2">
+        {/* Every control says what it does */}
+        <div className="absolute -right-3 -top-4 z-20 flex max-w-[calc(100vw-2rem)] flex-wrap justify-end gap-1.5">
           {!isEditing && (
             <button
               type="button"
               onClick={() => setShowRhymes(!showRhymes)}
               aria-pressed={showRhymes}
-              className={cn(
-                "flex h-9 items-center rounded-full px-3 text-xs font-semibold shadow-xl transition hover:scale-105",
-                showRhymes ? "bg-amber-400 text-stone-900" : "border border-amber-300/40 bg-stone-900 text-amber-100",
-              )}
+              className={cn(pillButton, showRhymes ? "bg-amber-400 text-stone-900" : quiet)}
+              title="Colour the rhyming words and show syllables per line"
             >
               {showRhymes ? "Hide rhymes" : "Rhyme scheme"}
             </button>
@@ -206,40 +209,39 @@ export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onFinishedWrit
                 type="button"
                 onClick={() => setDeskOpen((v) => !v)}
                 aria-pressed={deskOpen}
-                className={cn(iconButton, deskOpen ? "bg-amber-400 text-stone-900" : "border border-amber-300/40 bg-stone-900 text-amber-100")}
-                aria-label={deskOpen ? "Hide the writer's desk" : "Show the writer's desk"}
-                title="Writer's desk"
+                className={cn(pillButton, deskOpen ? "bg-amber-400 text-stone-900" : quiet)}
+                title="Word counts, your rhyme scheme and a rhyme finder"
               >
-                <NotebookPen size={14} />
+                <NotebookPen size={13} aria-hidden="true" /> {deskOpen ? "Hide desk" : "Writer's desk"}
               </button>
               <button
                 type="button"
                 onClick={() => setLightsDown((v) => !v)}
                 aria-pressed={lightsDown}
-                className={cn(iconButton, lightsDown ? "bg-amber-400 text-stone-900" : "border border-amber-300/40 bg-stone-900 text-amber-100")}
-                aria-label={lightsDown ? "Bring the lights up" : "Turn the lights down"}
-                title="Lights down"
+                className={cn(pillButton, lightsDown ? "bg-amber-400 text-stone-900" : quiet)}
+                title="Dim the room so it's just you and the page"
               >
-                {lightsDown ? <LampDesk size={14} /> : <Lamp size={14} />}
+                {lightsDown ? <LampDesk size={13} aria-hidden="true" /> : <Lamp size={13} aria-hidden="true" />}
+                {lightsDown ? "Lights up" : "Lights down"}
               </button>
             </>
           )}
           {isAdmin && !isEditing && (
-            <button type="button" onClick={() => setIsEditing(true)} className={cn(iconButton, "bg-amber-600 text-amber-50")} aria-label="Edit poem">
-              <Pencil size={14} />
+            <button type="button" onClick={() => setIsEditing(true)} className={cn(pillButton, "bg-amber-600 text-amber-50")}>
+              <Pencil size={13} aria-hidden="true" /> Edit
             </button>
           )}
-          <button type="button" onClick={onCopy} className={cn(iconButton, "border border-amber-300/40 bg-stone-900 text-amber-100")} aria-label="Copy poem">
-            <Copy size={14} />
+          <button type="button" onClick={onCopy} className={cn(pillButton, quiet)} title="Copy the poem to paste anywhere">
+            <Copy size={13} aria-hidden="true" /> Copy
           </button>
-          <button type="button" onClick={close} className={cn(iconButton, "brass-plate text-stone-900")} aria-label="Close poem">
-            <X size={16} />
+          <button type="button" onClick={close} className={cn(pillButton, "brass-plate text-stone-900")}>
+            <X size={14} aria-hidden="true" /> Close
           </button>
         </div>
 
         {isAdmin && (
-          <button type="button" onClick={onDelete} className={cn(iconButton, "absolute -left-4 -top-4 z-20 bg-destructive text-destructive-foreground")} aria-label="Delete poem">
-            <Trash2 size={14} />
+          <button type="button" onClick={onDelete} className={cn(pillButton, "absolute -left-3 -top-4 z-20 bg-destructive text-destructive-foreground")}>
+            <Trash2 size={13} aria-hidden="true" /> Delete
           </button>
         )}
 

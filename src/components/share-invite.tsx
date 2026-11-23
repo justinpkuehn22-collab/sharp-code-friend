@@ -3,16 +3,13 @@ import { useQuery } from "@tanstack/react-query";
 import { Check, Copy, Send, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { fetchReaderCode, inviteLink } from "@/services/shelf-service";
+import { fetchReaderCode, inviteLink, inviteMessage } from "@/services/shelf-service";
 import { copyText } from "@/lib/poem-clipboard";
 
 interface ShareInviteProps {
   token: string;
   className: string;
 }
-
-export const inviteMessage = (link: string, code: string): string =>
-  `I'd love for you to read my poems. This link lets you straight in: ${link}\nIf it ever asks for the word, it's: ${code}`;
 
 // Admin only: a link (and the reader's code) to send to friends
 export const ShareInvite = ({ token, className }: ShareInviteProps) => {
