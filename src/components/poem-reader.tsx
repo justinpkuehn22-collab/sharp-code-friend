@@ -16,6 +16,8 @@ interface PoemReaderProps {
   startEditing: boolean;
   // Shown above the editor when a poem was started from a writing prompt
   prompt?: string;
+  // Called once when the admin finishes writing or editing a poem with words in it
+  onFinishedWriting?: () => void;
   onClose: () => void;
   onPrevious?: () => void;
   onNext?: () => void;
@@ -62,7 +64,7 @@ const TagEditor = ({ tags, onChange }: { tags: string[]; onChange: (tags: string
   );
 };
 
-export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onClose, onPrevious, onNext }: PoemReaderProps) => {
+export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onFinishedWriting, onClose, onPrevious, onNext }: PoemReaderProps) => {
   const { updatePoem, deletePoem } = usePoemStore();
   const { typewriterSounds, setTypewriterSounds } = useLoungeStore();
   const onTypeKey = (e: ReactKeyboardEvent<HTMLElement>) => {
@@ -70,6 +72,20 @@ export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onClose, onPre
   };
   const [isEditing, setIsEditing] = useState(isAdmin && startEditing);
   const contentRef = useRef<HTMLTextAreaElement>(null);
+  // What the poem looked like when it was opened, to tell whether anything was written
+  const openedWith = useRef(`${poem.title}\n${poem.content}`);
+  const celebrated = useRef(false);
+  const finishWriting = useCallback(() => {
+    const changed = `${poem.title}\n${poem.content}` !== openedWith.current;
+    if (isAdmin && changed && poem.content.trim() !== "" && !celebrated.current) {
+      celebrated.current = true;
+      onFinishedWriting?.();
+    }
+  }, [isAdmin, poem.title, poem.content, onFinishedWriting]);
+  const close = useCallback(() => {
+    finishWriting();
+    onClose();
+  }, [finishWriting, onClose]);
   const hasContent = poem.content.trim() !== "";
   const showTypewriter = !isEditing && hasContent;
 
@@ -88,7 +104,7 @@ export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onClose, onPre
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") close();
       if (isEditing) return;
       if (e.key === "Enter" && !revealed) {
         e.preventDefault();
@@ -99,7 +115,7 @@ export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onClose, onPre
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [isEditing, revealed, skipAll, onClose, onPrevious, onNext]);
+  }, [isEditing, revealed, skipAll, close, onPrevious, onNext]);
 
   const onDelete = () => {
     if (window.confirm(`Remove "${poem.title.trim() || "this poem"}" from your shelf? It stays in your backups.`)) {
@@ -118,7 +134,7 @@ export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onClose, onPre
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8"
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) close();
       }}
       role="dialog"
       aria-modal="true"
@@ -147,7 +163,7 @@ export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onClose, onPre
           <button type="button" onClick={onCopy} className={cn(iconButton, "border border-amber-300/40 bg-stone-900 text-amber-100")} aria-label="Copy poem">
             <Copy size={14} />
           </button>
-          <button type="button" onClick={onClose} className={cn(iconButton, "brass-plate text-stone-900")} aria-label="Close poem">
+          <button type="button" onClick={close} className={cn(iconButton, "brass-plate text-stone-900")} aria-label="Close poem">
             <X size={16} />
           </button>
         </div>
@@ -210,7 +226,14 @@ export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onClose, onPre
                 />
                 <div className="mt-4 flex items-center justify-between gap-3">
                   {hasContent ? (
-                    <button type="button" onClick={() => setIsEditing(false)} className="text-xs text-amber-200/50 hover:text-amber-200/90">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        finishWriting();
+                        setIsEditing(false);
+                      }}
+                      className="text-xs text-amber-200/50 hover:text-amber-200/90"
+                    >
                       Done editing
                     </button>
                   ) : (

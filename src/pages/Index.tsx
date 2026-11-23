@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { BarChart3, Check, Eye, EyeOff, ClipboardPaste, Copy, CloudOff, Loader2, LogOut, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { usePoemStore } from "@/stores/poem-store";
@@ -10,6 +10,8 @@ import { GrandfatherClock } from "@/components/grandfather-clock";
 import { ShelfSearch } from "@/components/shelf-search";
 import { InsightsPanel } from "@/components/insights-panel";
 import { PhonographPlayer } from "@/components/phonograph-player";
+import { CheersCelebration } from "@/components/cheers-celebration";
+import { useLoungeStore } from "@/stores/lounge-store";
 import { WritingPrompts } from "@/components/writing-prompts";
 import type { WritingPrompt } from "@/data/writing-prompts";
 import { copyText, poemsToText, textToPoems } from "@/lib/poem-clipboard";
@@ -58,6 +60,9 @@ export const Index = () => {
   const [freshId, setFreshId] = useState<string | null>(null);
   const [freshPrompt, setFreshPrompt] = useState<string | null>(null);
   const [insightsOpen, setInsightsOpen] = useState(false);
+  const [cheers, setCheers] = useState<number | null>(null);
+  const withSound = useLoungeStore((s) => s.typewriterSounds);
+  const endCheers = useCallback(() => setCheers(null), []);
 
   const written = useMemo(() => poems.filter(isWritten), [poems]);
   const visible = useMemo(() => filterPoems(written, filter), [written, filter]);
@@ -263,6 +268,7 @@ export const Index = () => {
           isAdmin={isAdmin}
           startEditing={openPoem.id === freshId}
           prompt={openPoem.id === freshId ? (freshPrompt ?? undefined) : undefined}
+          onFinishedWriting={() => setCheers(Date.now())}
           onClose={close}
           onPrevious={openIndex > 0 ? () => setOpenId(visible[openIndex - 1].id) : undefined}
           onNext={openIndex >= 0 && openIndex < visible.length - 1 ? () => setOpenId(visible[openIndex + 1].id) : undefined}
@@ -270,6 +276,8 @@ export const Index = () => {
       )}
 
       <PhonographPlayer />
+
+      {cheers !== null && <CheersCelebration key={cheers} trigger={cheers} withSound={withSound} onDone={endCheers} />}
 
       {isAdmin && (
         <InsightsPanel open={insightsOpen} onOpenChange={setInsightsOpen} poems={written} onOpenPoem={setOpenId} />
