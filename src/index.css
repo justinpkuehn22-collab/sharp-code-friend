@@ -4,6 +4,28 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Room themes: wall, wood and lamp-light hues. Gold trim stays gold in every theme. */
+:root {
+  --wall-h: 12;
+  --wood-h: 20;
+  --glow-h: 36;
+}
+:root[data-room-theme="emerald"] {
+  --wall-h: 165;
+  --wood-h: 24;
+  --glow-h: 140;
+}
+:root[data-room-theme="midnight"] {
+  --wall-h: 222;
+  --wood-h: 12;
+  --glow-h: 205;
+}
+:root[data-room-theme="rouge"] {
+  --wall-h: 350;
+  --wood-h: 356;
+  --glow-h: 345;
+}
+
 @layer base {
   :root {
     --background: 34 44% 92%;
@@ -134,25 +156,25 @@
 /* Speakeasy entrance textures */
 @layer components {
   .speakeasy-wall {
-    background-color: hsl(12, 22%, 9%);
+    background-color: hsl(var(--wall-h), 22%, 9%);
     background-image:
-      radial-gradient(ellipse at 50% 18%, hsl(36 80% 45% / 0.22) 0%, transparent 55%),
+      radial-gradient(ellipse at 50% 18%, hsl(var(--glow-h) 80% 45% / 0.22) 0%, transparent 55%),
       radial-gradient(ellipse at 50% 110%, hsl(0 0% 0% / 0.8) 0%, transparent 60%),
-      linear-gradient(hsl(12 18% 6% / 0.9) 2px, transparent 2px),
-      linear-gradient(90deg, hsl(12 18% 6% / 0.9) 2px, transparent 2px),
-      linear-gradient(hsl(12 18% 6% / 0.9) 2px, transparent 2px),
-      linear-gradient(90deg, hsl(12 18% 6% / 0.9) 2px, transparent 2px);
+      linear-gradient(hsl(var(--wall-h) 18% 6% / 0.9) 2px, transparent 2px),
+      linear-gradient(90deg, hsl(var(--wall-h) 18% 6% / 0.9) 2px, transparent 2px),
+      linear-gradient(hsl(var(--wall-h) 18% 6% / 0.9) 2px, transparent 2px),
+      linear-gradient(90deg, hsl(var(--wall-h) 18% 6% / 0.9) 2px, transparent 2px);
     background-size: 100% 100%, 100% 100%, 64px 32px, 64px 32px, 64px 32px, 64px 32px;
     background-position: 0 0, 0 0, 0 0, 0 0, 32px 16px, 32px 16px;
   }
 
   .speakeasy-door {
-    background-color: hsl(20, 32%, 14%);
+    background-color: hsl(calc(var(--wood-h) + 0), 32%, 14%);
     background-image:
       repeating-linear-gradient(90deg, transparent 0 22px, hsl(0 0% 0% / 0.12) 22px 24px, transparent 24px 61px),
-      linear-gradient(180deg, hsl(22 34% 20%), hsl(18 30% 11%));
+      linear-gradient(180deg, hsl(calc(var(--wood-h) + 2) 34% 20%), hsl(calc(var(--wood-h) - 2) 30% 11%));
     box-shadow:
-      inset 0 0 0 10px hsl(18 30% 9%),
+      inset 0 0 0 10px hsl(calc(var(--wood-h) - 2) 30% 9%),
       inset 0 0 0 12px hsl(38 45% 38% / 0.35),
       inset 0 0 60px hsl(0 0% 0% / 0.7),
       0 40px 80px hsl(0 0% 0% / 0.75);
@@ -172,22 +194,22 @@
   }
 
   .neon-amber {
-    color: hsl(38 100% 72%);
-    text-shadow: 0 0 6px hsl(38 100% 60% / 0.9), 0 0 18px hsl(30 100% 50% / 0.7), 0 0 42px hsl(25 100% 45% / 0.5);
+    color: hsl(calc(var(--glow-h) + 2) 100% 72%);
+    text-shadow: 0 0 6px hsl(calc(var(--glow-h) + 2) 100% 60% / 0.9), 0 0 18px hsl(calc(var(--glow-h) - 6) 100% 50% / 0.7), 0 0 42px hsl(calc(var(--glow-h) - 11) 100% 45% / 0.5);
   }
 }
 
 /* Bookshelf furniture: walnut, brass and lamp light, matching the speakeasy door */
 @layer components {
   .room-backdrop {
-    background-color: hsl(12, 22%, 9%);
+    background-color: hsl(var(--wall-h), 22%, 9%);
     background-image:
-      radial-gradient(ellipse 60% 40% at 50% 0%, hsl(36 80% 45% / 0.25) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 40% at 50% 0%, hsl(var(--glow-h) 80% 45% / 0.25) 0%, transparent 70%),
       radial-gradient(ellipse at 50% 120%, hsl(0 0% 0% / 0.85) 0%, transparent 60%),
-      linear-gradient(hsl(12 18% 6% / 0.9) 2px, transparent 2px),
-      linear-gradient(90deg, hsl(12 18% 6% / 0.9) 2px, transparent 2px),
-      linear-gradient(hsl(12 18% 6% / 0.9) 2px, transparent 2px),
-      linear-gradient(90deg, hsl(12 18% 6% / 0.9) 2px, transparent 2px);
+      linear-gradient(hsl(var(--wall-h) 18% 6% / 0.9) 2px, transparent 2px),
+      linear-gradient(90deg, hsl(var(--wall-h) 18% 6% / 0.9) 2px, transparent 2px),
+      linear-gradient(hsl(var(--wall-h) 18% 6% / 0.9) 2px, transparent 2px),
+      linear-gradient(90deg, hsl(var(--wall-h) 18% 6% / 0.9) 2px, transparent 2px);
     background-size: 100% 100%, 100% 100%, 64px 32px, 64px 32px, 64px 32px, 64px 32px;
     background-position: 0 0, 0 0, 0 0, 0 0, 32px 16px, 32px 16px;
   }
@@ -195,36 +217,36 @@
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.9 0.012' numOctaves='3' seed='4'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23g)'/></svg>");
   }
   .shelf-cabinet {
-    background-color: hsl(20, 32%, 14%);
+    background-color: hsl(calc(var(--wood-h) + 0), 32%, 14%);
     background-image:
       url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.9 0.012' numOctaves='3' seed='4'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23g)'/></svg>"),
-      linear-gradient(90deg, hsl(18 30% 10%), hsl(22 34% 19%) 18%, hsl(20 32% 15%) 50%, hsl(22 34% 19%) 82%, hsl(18 30% 10%));
+      linear-gradient(90deg, hsl(calc(var(--wood-h) - 2) 30% 10%), hsl(calc(var(--wood-h) + 2) 34% 19%) 18%, hsl(calc(var(--wood-h) + 0) 32% 15%) 50%, hsl(calc(var(--wood-h) + 2) 34% 19%) 82%, hsl(calc(var(--wood-h) - 2) 30% 10%));
     border-radius: 10px 10px 6px 6px;
     box-shadow:
       inset 0 0 0 2px hsl(38 50% 42% / 0.55),
-      inset 0 0 0 6px hsl(18 30% 9%),
+      inset 0 0 0 6px hsl(calc(var(--wood-h) - 2) 30% 9%),
       0 0 0 1px hsl(0 0% 0% / 0.8),
       0 40px 90px hsl(0 0% 0% / 0.8),
-      0 0 120px hsl(36 80% 40% / 0.12);
+      0 0 120px hsl(var(--glow-h) 80% 40% / 0.12);
   }
   .shelf-crown {
     background-image:
       url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='60'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.01 0.9' numOctaves='3' seed='9'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(%23g)'/></svg>"),
-      linear-gradient(180deg, hsl(22 34% 24%), hsl(18 30% 12%));
+      linear-gradient(180deg, hsl(calc(var(--wood-h) + 2) 34% 24%), hsl(calc(var(--wood-h) - 2) 30% 12%));
     border-bottom: 2px solid hsl(38 50% 42% / 0.7);
     box-shadow: inset 0 1px 0 hsl(38 60% 60% / 0.25), 0 4px 10px hsl(0 0% 0% / 0.6);
   }
   .shelf-base {
     background-image:
       url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='60'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.01 0.9' numOctaves='3' seed='9'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(%23g)'/></svg>"),
-      linear-gradient(180deg, hsl(18 30% 12%), hsl(22 34% 22%));
+      linear-gradient(180deg, hsl(calc(var(--wood-h) - 2) 30% 12%), hsl(calc(var(--wood-h) + 2) 34% 22%));
     border-top: 2px solid hsl(38 50% 42% / 0.7);
     box-shadow: inset 0 -1px 0 hsl(0 0% 0% / 0.5);
   }
   .shelf-back {
-    background-color: hsl(18, 28%, 8%);
+    background-color: hsl(calc(var(--wood-h) - 2), 28%, 8%);
     background-image:
-      radial-gradient(ellipse 70% 30% at 50% 0%, hsl(36 85% 50% / 0.22), transparent 75%),
+      radial-gradient(ellipse 70% 30% at 50% 0%, hsl(var(--glow-h) 85% 50% / 0.22), transparent 75%),
       url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.9 0.012' numOctaves='3' seed='4'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23g)'/></svg>"),
       repeating-linear-gradient(90deg, transparent 0 118px, hsl(0 0% 0% / 0.45) 118px 120px);
     box-shadow: inset 0 10px 30px hsl(0 0% 0% / 0.75), inset 8px 0 16px hsl(0 0% 0% / 0.5), inset -8px 0 16px hsl(0 0% 0% / 0.5);
@@ -232,21 +254,21 @@
   .shelf-plank {
     background-image:
       url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='60'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.01 0.9' numOctaves='3' seed='9'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(%23g)'/></svg>"),
-      linear-gradient(180deg, hsl(26 36% 34%), hsl(22 34% 24%));
+      linear-gradient(180deg, hsl(calc(var(--wood-h) + 6) 36% 34%), hsl(calc(var(--wood-h) + 2) 34% 24%));
   }
   .shelf-plank-front {
     background-image:
       url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='60'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.01 0.9' numOctaves='3' seed='9'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(%23g)'/></svg>"),
-      linear-gradient(180deg, hsl(22 32% 20%), hsl(18 30% 13%));
+      linear-gradient(180deg, hsl(calc(var(--wood-h) + 2) 32% 20%), hsl(calc(var(--wood-h) - 2) 30% 13%));
     border-top: 1px solid hsl(38 55% 48% / 0.75);
     box-shadow: inset 0 1px 0 hsl(40 70% 65% / 0.25);
   }
   .shelf-plank-shadow {
-    background: hsl(18 30% 6%);
+    background: hsl(calc(var(--wood-h) - 2) 30% 6%);
     box-shadow: 0 8px 14px hsl(0 0% 0% / 0.65);
   }
   .shelf-foot {
-    background-image: linear-gradient(180deg, hsl(18 30% 12%), hsl(18 30% 7%));
+    background-image: linear-gradient(180deg, hsl(calc(var(--wood-h) - 2) 30% 12%), hsl(calc(var(--wood-h) - 2) 30% 7%));
     box-shadow: 0 4px 8px hsl(0 0% 0% / 0.6), inset 0 1px 0 hsl(38 50% 42% / 0.4);
   }
   .brass-plate {
@@ -254,3 +276,33 @@
     box-shadow: 0 2px 6px hsl(0 0% 0% / 0.6), inset 0 1px 0 hsl(45 90% 85% / 0.6);
   }
 }
+
+/* Phonograph record */
+@layer components {
+  .vinyl {
+    background:
+      radial-gradient(circle at 50% 50%, hsl(38 70% 45%) 0 17%, hsl(20 10% 6%) 17.5% 19%, transparent 19.5%),
+      repeating-radial-gradient(circle at 50% 50%, hsl(0 0% 7%) 0 1.5px, hsl(0 0% 13%) 1.5px 3px),
+      hsl(0 0% 8%);
+    box-shadow: 0 6px 18px hsl(0 0% 0% / 0.7), inset 0 0 0 2px hsl(0 0% 0% / 0.6);
+  }
+  .vinyl-shine {
+    background: conic-gradient(from 20deg, transparent 0 12%, hsl(0 0% 100% / 0.12) 16%, transparent 22% 62%, hsl(0 0% 100% / 0.08) 66%, transparent 72%);
+  }
+}
+
+/* Champagne cheers sparkles: each flies out in its own direction (outside @layer so they're never purged) */
+.spark-0 { --dx: 109px; --dy: -19px; animation-delay: 0.00s; }
+.spark-1 { --dx: 130px; --dy: 37px; animation-delay: 0.03s; }
+.spark-2 { --dx: 105px; --dy: 106px; animation-delay: 0.06s; }
+.spark-3 { --dx: 11px; --dy: 58px; animation-delay: 0.09s; }
+.spark-4 { --dx: -53px; --dy: 87px; animation-delay: 0.00s; }
+.spark-5 { --dx: -143px; --dy: 82px; animation-delay: 0.03s; }
+.spark-6 { --dx: -104px; --dy: -2px; animation-delay: 0.06s; }
+.spark-7 { --dx: -154px; --dy: -45px; animation-delay: 0.09s; }
+.spark-8 { --dx: -168px; --dy: -116px; animation-delay: 0.00s; }
+.spark-9 { --dx: -58px; --dy: -105px; animation-delay: 0.03s; }
+.spark-10 { --dx: -16px; --dy: -153px; animation-delay: 0.06s; }
+.spark-11 { --dx: 68px; --dy: -180px; animation-delay: 0.09s; }
+.spark-12 { --dx: 79px; --dy: -92px; animation-delay: 0.00s; }
+.spark-13 { --dx: 147px; --dy: -70px; animation-delay: 0.03s; }

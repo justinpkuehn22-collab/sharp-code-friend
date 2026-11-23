@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { BarChart3, Check, Eye, EyeOff, ClipboardPaste, Copy, CloudOff, Loader2, LogOut, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { usePoemStore } from "@/stores/poem-store";
@@ -9,6 +9,10 @@ import { PoemReader } from "@/components/poem-reader";
 import { GrandfatherClock } from "@/components/grandfather-clock";
 import { ShelfSearch } from "@/components/shelf-search";
 import { InsightsPanel } from "@/components/insights-panel";
+import { PhonographPlayer } from "@/components/phonograph-player";
+import { CheersCelebration } from "@/components/cheers-celebration";
+import { RoomThemePicker } from "@/components/room-theme-picker";
+import { useLoungeStore } from "@/stores/lounge-store";
 import { WritingPrompts } from "@/components/writing-prompts";
 import type { WritingPrompt } from "@/data/writing-prompts";
 import { copyText, poemsToText, textToPoems } from "@/lib/poem-clipboard";
@@ -57,6 +61,9 @@ export const Index = () => {
   const [freshId, setFreshId] = useState<string | null>(null);
   const [freshPrompt, setFreshPrompt] = useState<string | null>(null);
   const [insightsOpen, setInsightsOpen] = useState(false);
+  const [cheers, setCheers] = useState<number | null>(null);
+  const withSound = useLoungeStore((s) => s.typewriterSounds);
+  const endCheers = useCallback(() => setCheers(null), []);
 
   const written = useMemo(() => poems.filter(isWritten), [poems]);
   const visible = useMemo(() => filterPoems(written, filter), [written, filter]);
@@ -124,12 +131,20 @@ export const Index = () => {
         </div>
       )}
 
-      <header className="mb-4 flex w-full max-w-3xl items-center justify-between gap-3">
-        <p className="font-display text-sm italic text-amber-100/70">
+      <header className="mb-4 flex w-full max-w-3xl flex-wrap items-center justify-between gap-3">
+        <p className="flex items-center gap-2 font-display text-sm italic text-amber-100/70">
+          <span className="rounded-sm border border-amber-400/40 px-1.5 py-px font-body text-[10px] not-italic uppercase tracking-[0.2em] text-amber-300">
+            {isOwner ? (viewAsGuest ? "Admin · guest view" : "Admin") : "Guest"}
+          </span>
           {isAdmin ? "Welcome back. The house is yours." : "Pull up a chair and read a while."}
         </p>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {isAdmin && <SaveIndicator status={saveStatus} />}
+          {isAdmin && (
+            <button type="button" onClick={() => writeNew()} className={`${pill} brass-plate text-stone-900 hover:brightness-110`}>
+              <Plus size={12} aria-hidden="true" /> Write a new poem
+            </button>
+          )}
           {isOwner && (
             <button
               type="button"
@@ -150,6 +165,7 @@ export const Index = () => {
               <BarChart3 size={12} aria-hidden="true" /> Insights
             </button>
           )}
+          <RoomThemePicker className={`${pill} border border-amber-100/20 bg-black/30 text-amber-100/85 hover:text-amber-50`} />
           <button type="button" onClick={leave} className={`${pill} border border-amber-100/20 bg-black/30 text-amber-100/85 hover:text-amber-50`}>
             <LogOut size={12} aria-hidden="true" /> Leave
           </button>
@@ -169,7 +185,21 @@ export const Index = () => {
 
         <div className="shelf-back mx-3 sm:mx-5">
           <div className="flex animate-fade-in justify-center pb-4 pt-8">
-            <GrandfatherClock />
+            {isAdmin ? (
+              <button
+                type="button"
+                onClick={() => writeNew()}
+                className="group relative flex flex-col items-center rounded-md transition hover:drop-shadow-[0_0_24px_rgba(251,191,36,0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+                aria-label="Write a new poem"
+              >
+                <GrandfatherClock />
+                <span className="mt-3 rounded-full border border-amber-400/40 bg-black/50 px-3 py-1 font-display text-xs italic text-amber-100/80 transition group-hover:border-amber-300 group-hover:text-amber-50">
+                  It's time to write. Tap the clock.
+                </span>
+              </button>
+            ) : (
+              <GrandfatherClock />
+            )}
           </div>
 
           <ShelfSearch
@@ -254,11 +284,16 @@ export const Index = () => {
           isAdmin={isAdmin}
           startEditing={openPoem.id === freshId}
           prompt={openPoem.id === freshId ? (freshPrompt ?? undefined) : undefined}
+          onFinishedWriting={() => setCheers(Date.now())}
           onClose={close}
           onPrevious={openIndex > 0 ? () => setOpenId(visible[openIndex - 1].id) : undefined}
           onNext={openIndex >= 0 && openIndex < visible.length - 1 ? () => setOpenId(visible[openIndex + 1].id) : undefined}
         />
       )}
+
+      <PhonographPlayer />
+
+      {cheers !== null && <CheersCelebration key={cheers} trigger={cheers} withSound={withSound} onDone={endCheers} />}
 
       {isAdmin && (
         <InsightsPanel open={insightsOpen} onOpenChange={setInsightsOpen} poems={written} onOpenPoem={setOpenId} />
