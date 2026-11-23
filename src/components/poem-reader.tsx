@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { createPortal } from "react-dom";
-import { ChevronLeft, ChevronRight, Copy, Pencil, Trash2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Copy, Keyboard, Pencil, Trash2, X } from "lucide-react";
+import { keySoundFor, playKeySound } from "@/lib/audio/typewriter-sound";
+import { useLoungeStore } from "@/stores/lounge-store";
 import { toast } from "sonner";
 import { moodLabels, moods, type Mood, type Poem } from "@/data/poems";
 import { usePoemStore } from "@/stores/poem-store";
@@ -62,6 +64,10 @@ const TagEditor = ({ tags, onChange }: { tags: string[]; onChange: (tags: string
 
 export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onClose, onPrevious, onNext }: PoemReaderProps) => {
   const { updatePoem, deletePoem } = usePoemStore();
+  const { typewriterSounds, setTypewriterSounds } = useLoungeStore();
+  const onTypeKey = (e: ReactKeyboardEvent<HTMLElement>) => {
+    if (typewriterSounds && !e.repeat) playKeySound(keySoundFor(e.key, e.metaKey || e.ctrlKey || e.altKey));
+  };
   const [isEditing, setIsEditing] = useState(isAdmin && startEditing);
   const contentRef = useRef<HTMLTextAreaElement>(null);
   const hasContent = poem.content.trim() !== "";
@@ -166,6 +172,7 @@ export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onClose, onPre
                 <input
                   value={poem.title}
                   onChange={(e) => updatePoem(poem.id, { title: e.target.value.slice(0, 200) })}
+                  onKeyDown={onTypeKey}
                   className="mb-6 w-full border-none bg-transparent font-display text-2xl font-bold tracking-[0.04em] text-[hsl(38,55%,70%)] outline-none placeholder:text-amber-200/30 sm:text-3xl"
                   placeholder="Title"
                   aria-label="Poem title"
@@ -196,15 +203,31 @@ export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onClose, onPre
                   ref={contentRef}
                   value={poem.content}
                   onChange={(e) => updatePoem(poem.id, { content: e.target.value.slice(0, 20000) })}
+                  onKeyDown={onTypeKey}
                   className="min-h-[280px] w-full resize-none border-none bg-transparent font-body text-base leading-[2] tracking-[0.01em] text-[hsl(34,30%,75%)] outline-none placeholder:text-amber-100/20 sm:text-lg"
                   placeholder="Write your poem here…"
                   aria-label="Poem"
                 />
-                {hasContent && (
-                  <button type="button" onClick={() => setIsEditing(false)} className="mt-4 text-xs text-amber-200/50 hover:text-amber-200/90">
-                    Done editing
+                <div className="mt-4 flex items-center justify-between gap-3">
+                  {hasContent ? (
+                    <button type="button" onClick={() => setIsEditing(false)} className="text-xs text-amber-200/50 hover:text-amber-200/90">
+                      Done editing
+                    </button>
+                  ) : (
+                    <span />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setTypewriterSounds(!typewriterSounds)}
+                    aria-pressed={typewriterSounds}
+                    className={cn(
+                      "flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs transition",
+                      typewriterSounds ? "border-amber-400/60 text-amber-100" : "border-amber-100/15 text-amber-100/45",
+                    )}
+                  >
+                    <Keyboard size={12} aria-hidden="true" /> Typewriter sounds {typewriterSounds ? "on" : "off"}
                   </button>
-                )}
+                </div>
               </>
             ) : (
               <div

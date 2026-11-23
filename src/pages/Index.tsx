@@ -9,6 +9,7 @@ import { PoemReader } from "@/components/poem-reader";
 import { GrandfatherClock } from "@/components/grandfather-clock";
 import { ShelfSearch } from "@/components/shelf-search";
 import { InsightsPanel } from "@/components/insights-panel";
+import { PhonographPlayer } from "@/components/phonograph-player";
 import { WritingPrompts } from "@/components/writing-prompts";
 import type { WritingPrompt } from "@/data/writing-prompts";
 import { copyText, poemsToText, textToPoems } from "@/lib/poem-clipboard";
@@ -124,12 +125,20 @@ export const Index = () => {
         </div>
       )}
 
-      <header className="mb-4 flex w-full max-w-3xl items-center justify-between gap-3">
-        <p className="font-display text-sm italic text-amber-100/70">
+      <header className="mb-4 flex w-full max-w-3xl flex-wrap items-center justify-between gap-3">
+        <p className="flex items-center gap-2 font-display text-sm italic text-amber-100/70">
+          <span className="rounded-sm border border-amber-400/40 px-1.5 py-px font-body text-[10px] not-italic uppercase tracking-[0.2em] text-amber-300">
+            {isOwner ? (viewAsGuest ? "Admin · guest view" : "Admin") : "Guest"}
+          </span>
           {isAdmin ? "Welcome back. The house is yours." : "Pull up a chair and read a while."}
         </p>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {isAdmin && <SaveIndicator status={saveStatus} />}
+          {isAdmin && (
+            <button type="button" onClick={() => writeNew()} className={`${pill} brass-plate text-stone-900 hover:brightness-110`}>
+              <Plus size={12} aria-hidden="true" /> Write a new poem
+            </button>
+          )}
           {isOwner && (
             <button
               type="button"
@@ -259,6 +268,8 @@ export const Index = () => {
           onNext={openIndex >= 0 && openIndex < visible.length - 1 ? () => setOpenId(visible[openIndex + 1].id) : undefined}
         />
       )}
+
+      <PhonographPlayer />
 
       {isAdmin && (
         <InsightsPanel open={insightsOpen} onOpenChange={setInsightsOpen} poems={written} onOpenPoem={setOpenId} />
