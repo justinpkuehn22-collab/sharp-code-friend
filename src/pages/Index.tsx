@@ -12,6 +12,7 @@ import { InsightsPanel } from "@/components/insights-panel";
 import { PhonographPlayer } from "@/components/phonograph-player";
 import { CheersCelebration } from "@/components/cheers-celebration";
 import { RoomThemePicker } from "@/components/room-theme-picker";
+import { ShareInvite } from "@/components/share-invite";
 import { useLoungeStore } from "@/stores/lounge-store";
 import { WritingPrompts } from "@/components/writing-prompts";
 import type { WritingPrompt } from "@/data/writing-prompts";
@@ -144,6 +145,9 @@ export const Index = () => {
             <button type="button" onClick={() => writeNew()} className={`${pill} brass-plate text-stone-900 hover:brightness-110`}>
               <Plus size={12} aria-hidden="true" /> Write a new poem
             </button>
+          )}
+          {isAdmin && token && (
+            <ShareInvite token={token} className={`${pill} border border-amber-100/20 bg-black/30 text-amber-100/85 hover:text-amber-50`} />
           )}
           {isOwner && (
             <button

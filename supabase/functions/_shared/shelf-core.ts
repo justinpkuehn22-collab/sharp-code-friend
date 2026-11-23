@@ -218,3 +218,33 @@ export const loginLimits = {
   perClient: 5,
   global: 60,
 };
+
+// Secret names we accept, so a slightly different name in the dashboard still works
+export const adminSecretNames = ["ADMIN_CODE", "ADMIN_PASSWORD", "OWNER_CODE", "OWNER_PASSWORD", "ADMIN"];
+export const readerSecretNames = ["READER_CODE", "READER_PASSWORD", "GUEST_CODE", "GUEST_PASSWORD", "READER"];
+
+export interface ResolvedCodes {
+  admin: string | null;
+  reader: string | null;
+  adminFrom: string | null;
+  readerFrom: string | null;
+}
+
+// Finds the admin and reader codes from whatever secrets are set.
+// The old SITE_PASSWORD only ever grants reading, and never if it equals the admin code.
+export const resolveCodes = (getEnv: (name: string) => string | undefined): ResolvedCodes => {
+  const first = (names: string[]) => {
+    for (const name of names) {
+      const value = getEnv(name)?.trim();
+      if (value) return { value, name };
+    }
+    return null;
+  };
+  const admin = first(adminSecretNames);
+  let reader = first(readerSecretNames);
+  if (!reader) {
+    const legacy = getEnv("SITE_PASSWORD")?.trim();
+    if (legacy && (!admin || normaliseCode(legacy) !== normaliseCode(admin.value))) reader = { value: legacy, name: "SITE_PASSWORD" };
+  }
+  return { admin: admin?.value ?? null, reader: reader?.value ?? null, adminFrom: admin?.name ?? null, readerFrom: reader?.name ?? null };
+};

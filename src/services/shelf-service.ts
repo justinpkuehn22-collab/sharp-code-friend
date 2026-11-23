@@ -51,3 +51,27 @@ export const saveShelf = async (token: string, poems: Poem[], options: { keepali
   if (res.status === 401 || res.status === 403) throw new SignedOutError("Signed out");
   if (!res.ok) throw new Error("Could not save the shelf");
 };
+
+// Admin only: the reader's code, to share with friends
+export const fetchReaderCode = async (token: string): Promise<string | null> => {
+  const res = await fetch(`${baseUrl}?action=invite`, { headers: { ...baseHeaders(), "x-shelf-session": token } });
+  if (res.status === 401 || res.status === 403) throw new SignedOutError("Signed out");
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error("Could not load the reader's code");
+  const data = (await res.json()) as { readerCode: string };
+  return data.readerCode;
+};
+
+// Invite links carry the reader's code after "#", which browsers never send to any server
+export const inviteLink = (origin: string, readerCode: string): string =>
+  `${origin}/#word=${encodeURIComponent(readerCode)}`;
+
+export const codeFromInviteHash = (hash: string): string | null => {
+  const match = /(?:^#|&)word=([^&]+)/.exec(hash);
+  if (!match) return null;
+  try {
+    return decodeURIComponent(match[1]).slice(0, 64);
+  } catch {
+    return null;
+  }
+};
