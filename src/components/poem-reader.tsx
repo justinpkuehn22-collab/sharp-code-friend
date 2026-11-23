@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { createPortal } from "react-dom";
-import { ChevronLeft, ChevronRight, Copy, Keyboard, Lamp, LampDesk, MoreHorizontal, NotebookPen, Pencil, Trash2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, ClipboardCheck, Copy, Keyboard, Lamp, LampDesk, MoreHorizontal, NotebookPen, Pencil, Trash2, X } from "lucide-react";
 import { RhymedPoem } from "@/components/rhymed-poem";
+import { CritiquePanel } from "@/components/critique-panel";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -88,6 +89,7 @@ export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onFinishedWrit
   // Writer tools: the side desk, and a dimmer room for focus
   const [deskOpen, setDeskOpen] = useState(() => typeof window === "undefined" || window.innerWidth >= 1024);
   const [lightsDown, setLightsDown] = useState(false);
+  const [critiqueOpen, setCritiqueOpen] = useState(false);
   const insertWord = (word: string) => {
     const el = contentRef.current;
     const text = poem.content;
@@ -147,6 +149,9 @@ export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onFinishedWrit
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      // Keys pressed inside the critique panel or a menu belong to them, not the poem
+      const target = e.target instanceof Element ? e.target : null;
+      if (critiqueOpen || target?.closest('[role="dialog"][data-state], [role="menu"]')) return;
       if (e.key === "Escape") close();
       if (isEditing) return;
       if (e.key === "Enter" && !revealed) {
@@ -158,7 +163,7 @@ export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onFinishedWrit
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [isEditing, revealed, skipAll, close, onPrevious, onNext]);
+  }, [isEditing, revealed, skipAll, close, onPrevious, onNext, critiqueOpen]);
 
   const onDelete = () => {
     const question = poem.kind === "favorite"
@@ -225,6 +230,11 @@ export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onFinishedWrit
               className={cn(pillButton, deskOpen ? "bg-amber-400 text-stone-900" : quiet)}
             >
               <NotebookPen size={13} aria-hidden="true" /> {deskOpen ? "Hide desk" : "Writer's desk"}
+            </button>
+          )}
+          {isAdmin && hasContent && (
+            <button type="button" onClick={() => setCritiqueOpen(true)} className={cn(pillButton, quiet)}>
+              <ClipboardCheck size={13} aria-hidden="true" /> Critique
             </button>
           )}
           {isAdmin && !isEditing && !isFavorite && (
@@ -396,6 +406,7 @@ export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onFinishedWrit
           <div className="h-[2px] bg-gradient-to-r from-transparent via-[hsl(38,55%,50%)] to-transparent" />
         </div>
       </div>
+      {isAdmin && <CritiquePanel poem={poem} open={critiqueOpen} onOpenChange={setCritiqueOpen} />}
     </div>,
     document.body,
   );
