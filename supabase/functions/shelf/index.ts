@@ -64,7 +64,27 @@ const clientKey = async (req: Request): Promise<string> => {
   return sha256Hex(`${await sessionSecretPromise}|ip|${ip}`);
 };
 
+// Backup limiter kept in memory, used only if the attempts table isn't available yet
+const memoryAttempts = new Map<string, number[]>();
+const memoryWindowMs = loginLimits.windowMinutes * 60 * 1000;
+const recentMemoryAttempts = (key: string): number[] => {
+  const cutoff = Date.now() - memoryWindowMs;
+  const kept = (memoryAttempts.get(key) ?? []).filter((t) => t > cutoff);
+  memoryAttempts.set(key, kept);
+  return kept;
+};
+const memoryTooMany = (ipHash: string): boolean =>
+  recentMemoryAttempts(ipHash).length >= loginLimits.perClient ||
+  recentMemoryAttempts("*").length >= loginLimits.global;
+const recordFailure = async (ipHash: string): Promise<void> => {
+  const now = Date.now();
+  memoryAttempts.set(ipHash, [...recentMemoryAttempts(ipHash), now]);
+  memoryAttempts.set("*", [...recentMemoryAttempts("*"), now]);
+  await supabase.from("shelf_login_attempts").insert({ ip_hash: ipHash });
+};
+
 const tooManyAttempts = async (ipHash: string): Promise<boolean> => {
+  if (memoryTooMany(ipHash)) return true;
   const since = new Date(Date.now() - loginLimits.windowMinutes * 60 * 1000).toISOString();
   const [mine, all] = await Promise.all([
     supabase
@@ -77,8 +97,11 @@ const tooManyAttempts = async (ipHash: string): Promise<boolean> => {
       .select("id", { count: "exact", head: true })
       .gte("attempted_at", since),
   ]);
-  // Fail closed if the limiter itself is broken
-  if (mine.error || all.error) return true;
+  // If the table isn't there yet, rely on the in-memory limiter rather than locking everyone out
+  if (mine.error || all.error) {
+    console.error("attempts table unavailable; using in-memory limit");
+    return false;
+  }
   return (mine.count ?? 0) >= loginLimits.perClient || (all.count ?? 0) >= loginLimits.global;
 };
 
@@ -103,10 +126,11 @@ const handleLogin = async (req: Request, origin: string | null): Promise<Respons
 
   const role = await roleForCode(code, { admin: adminCode, reader: readerCode });
   if (!role) {
-    await supabase.from("shelf_login_attempts").insert({ ip_hash: ipHash });
+    await recordFailure(ipHash);
     return reply(origin, { error: "wrong_code" }, 401);
   }
   // A correct code clears this visitor's failed attempts
+  memoryAttempts.delete(ipHash);
   await supabase.from("shelf_login_attempts").delete().eq("ip_hash", ipHash);
   const { token, expiresAt } = await createSessionToken(await sessionSecretPromise, role);
   return reply(origin, { token, role, expiresAt });
