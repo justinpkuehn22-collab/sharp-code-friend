@@ -1,3 +1,4 @@
+import { Eye, EyeOff } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { WhiskeyGlass } from "@/components/whiskey-glass";
 import { signIn, TooManyAttemptsError, WrongCodeError } from "@/services/shelf-service";
@@ -17,6 +18,7 @@ export const SpeakeasyGate = ({ children }: { children: ReactNode }) => {
   const [message, setMessage] = useState("");
   const [shaking, setShaking] = useState(false);
   const [doorOpened, setDoorOpened] = useState(false);
+  const [showCode, setShowCode] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -138,28 +140,42 @@ export const SpeakeasyGate = ({ children }: { children: ReactNode }) => {
             <WhiskeyGlass cubes={code.length} shaking={shaking} className="mt-1" />
           </button>
 
-          <label htmlFor="speakeasy-code" className="sr-only">
-            Code word
-          </label>
-          <input
-            id="speakeasy-code"
-            ref={inputRef}
-            type="password"
-            autoComplete="off"
-            autoCapitalize="none"
-            spellCheck={false}
-            autoFocus
-            maxLength={64}
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            disabled={phase !== "waiting"}
-            className="absolute h-px w-px overflow-hidden opacity-0"
-          />
+          {/* The line where the code appears as it's typed */}
+          <div className="mt-5 flex w-full items-center gap-2 border-b-2 border-amber-300/60 pb-1 focus-within:border-amber-300">
+            <label htmlFor="speakeasy-code" className="sr-only">
+              Code word
+            </label>
+            <input
+              id="speakeasy-code"
+              ref={inputRef}
+              type={showCode ? "text" : "password"}
+              autoComplete="off"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              autoFocus
+              maxLength={64}
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              disabled={phase !== "waiting"}
+              placeholder="Type the word here"
+              className="w-full bg-transparent py-1 text-center font-display text-xl tracking-[0.15em] text-amber-50 outline-none placeholder:text-base placeholder:tracking-normal placeholder:text-amber-100/35"
+            />
+            <button
+              type="button"
+              onClick={() => setShowCode((v) => !v)}
+              className="text-amber-100/60 hover:text-amber-100"
+              aria-label={showCode ? "Hide what I'm typing" : "Show what I'm typing"}
+              aria-pressed={!showCode}
+            >
+              {showCode ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+            </button>
+          </div>
 
-          <p className="mt-5 min-h-[2.5rem] text-center text-sm text-amber-100/70" role="status" aria-live="polite">
+          <p className="mt-3 min-h-[2.5rem] text-center text-sm text-amber-100/70" role="status" aria-live="polite">
             {loadFailed
               ? "You're in, but the shelf didn't load. Refresh to try again."
-              : message || "Every letter you type drops in as ice. No one sees the word."}
+              : message || "Capital letters and spaces don't matter."}
           </p>
 
           <button
@@ -171,7 +187,7 @@ export const SpeakeasyGate = ({ children }: { children: ReactNode }) => {
           </button>
 
           {/* Door handle */}
-          <div className="brass absolute bottom-28 right-4 h-14 w-3 rounded-full shadow-[0_4px_10px_rgba(0,0,0,0.7)]" />
+          <div className="brass absolute bottom-8 right-3 h-12 w-2.5 rounded-full shadow-[0_4px_10px_rgba(0,0,0,0.7)]" />
         </form>
       </div>
 

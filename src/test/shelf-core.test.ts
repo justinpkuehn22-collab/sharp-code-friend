@@ -19,9 +19,17 @@ describe("roleForCode", () => {
     expect(await roleForCode("neat", codes)).toBe("reader");
   });
 
-  it("ignores surrounding spaces but nothing else", async () => {
+  it("ignores capital letters and spaces", async () => {
     expect(await roleForCode("  neat ", codes)).toBe("reader");
-    expect(await roleForCode("Neat", codes)).toBeNull();
+    expect(await roleForCode("Neat", codes)).toBe("reader");
+    expect(await roleForCode("On the rocks", { admin: "1106", reader: "Ontherocks" })).toBe("reader");
+    expect(await roleForCode("ONTHEROCKS", { admin: "1106", reader: "Ontherocks" })).toBe("reader");
+    expect(await roleForCode(" 1106 ", { admin: "1106", reader: "Ontherocks" })).toBe("admin");
+  });
+
+  it("still rejects near misses", async () => {
+    expect(await roleForCode("ontherock", { admin: "1106", reader: "Ontherocks" })).toBeNull();
+    expect(await roleForCode("1107", { admin: "1106", reader: "Ontherocks" })).toBeNull();
   });
 
   it("rejects empty and wrong codes", async () => {
