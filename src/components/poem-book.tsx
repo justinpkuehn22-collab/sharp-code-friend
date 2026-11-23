@@ -15,12 +15,21 @@ const seededRandom = (seed: number) => {
 // Height and width steps, so each spine looks hand-picked without inline styles
 const heights = ["h-[124px]", "h-[134px]", "h-[144px]", "h-[154px]", "h-[164px]", "h-[176px]"];
 const widths = ["w-[38px]", "w-[42px]", "w-[46px]", "w-[50px]", "w-[54px]"];
-const bookmarkColors = ["bg-primary", "bg-secondary"];
+const bookmarkColors = ["bg-amber-500", "bg-red-800"];
+// Leather bindings: oxblood, bottle green, navy, tobacco and black
+const leathers = [
+  "bg-[linear-gradient(90deg,hsl(355_45%_16%),hsl(355_48%_24%)_45%,hsl(355_45%_15%))]",
+  "bg-[linear-gradient(90deg,hsl(150_30%_11%),hsl(150_32%_18%)_45%,hsl(150_30%_10%))]",
+  "bg-[linear-gradient(90deg,hsl(220_35%_12%),hsl(220_36%_20%)_45%,hsl(220_35%_11%))]",
+  "bg-[linear-gradient(90deg,hsl(25_40%_14%),hsl(28_42%_22%)_45%,hsl(25_40%_13%))]",
+  "bg-[linear-gradient(90deg,hsl(20_8%_7%),hsl(20_8%_14%)_45%,hsl(20_8%_6%))]",
+];
 
 // One book on the shelf. Opening it is handled by the shelf, so books stay simple.
 export const PoemBook = ({ poem, index, onOpen }: PoemBookProps) => {
   const height = heights[Math.floor(seededRandom(index + 1) * heights.length)];
   const width = widths[Math.floor(seededRandom(index + 50) * widths.length)];
+  const leather = leathers[Math.floor(seededRandom(index + 90) * leathers.length)];
   const title = poem.title.trim() || "Untitled";
 
   return (
@@ -28,22 +37,24 @@ export const PoemBook = ({ poem, index, onOpen }: PoemBookProps) => {
       type="button"
       onClick={() => onOpen(poem.id)}
       className={cn(
-        "group relative flex flex-col items-center justify-end rounded-b-md rounded-t-sm bg-[hsl(28,12%,12%)] shadow-lg",
+        "group relative flex flex-col items-center justify-end rounded-b-md rounded-t-sm shadow-[0_6px_14px_rgba(0,0,0,0.6)]",
         "transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]",
         "hover:z-20 hover:-translate-y-6 hover:scale-[1.25] hover:shadow-[0_20px_40px_rgba(0,0,0,0.5)]",
         "focus-visible:z-20 focus-visible:-translate-y-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400",
         height,
         width,
+        leather,
       )}
       aria-label={`Open poem: ${title}${poem.mood ? ` (${moodLabels[poem.mood]})` : ""}`}
     >
-      <div className="absolute left-0 top-0 h-full w-1.5 rounded-bl-md rounded-tl-sm bg-[hsl(28,10%,18%)]" />
+      {/* Leather grain */}
+      <div className="wood-grain-v pointer-events-none absolute inset-0 rounded-b-md rounded-t-sm opacity-30 mix-blend-overlay" />
       <div className="absolute right-0 top-0 h-full w-px bg-[hsl(28,8%,8%)]" />
 
-      <div className="absolute left-2 right-2 top-3 h-px bg-clock-trim/25" />
-      <div className="absolute left-3 right-3 top-[18px] h-px bg-clock-trim/15" />
-      <div className="absolute bottom-6 left-2 right-2 h-px bg-clock-trim/25" />
-      <div className="absolute bottom-[30px] left-3 right-3 h-px bg-clock-trim/15" />
+      <div className="absolute left-2 right-2 top-3 h-px bg-amber-400/60" />
+      <div className="absolute left-3 right-3 top-[18px] h-px bg-amber-400/35" />
+      <div className="absolute bottom-6 left-2 right-2 h-px bg-amber-400/60" />
+      <div className="absolute bottom-[30px] left-3 right-3 h-px bg-amber-400/35" />
 
       <span
         className={cn(

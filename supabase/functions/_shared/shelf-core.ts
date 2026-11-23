@@ -74,17 +74,22 @@ export const safeEqual = async (a: string, b: string): Promise<boolean> => {
   return diff === 0;
 };
 
+// Codes ignore capital letters and spaces, so "On the rocks" and "ontherocks" both work
+export const normaliseCode = (code: string): string => code.toLowerCase().replace(/\s+/g, "");
+
 // Works out which role (if any) a typed code unlocks. Admin wins if both match.
 export const roleForCode = async (
   code: string,
   codes: { admin?: string | null; reader?: string | null },
 ): Promise<Role | null> => {
-  const given = code.trim();
+  const given = normaliseCode(code);
   if (!given) return null;
+  const admin = codes.admin ? normaliseCode(codes.admin) : "";
+  const reader = codes.reader ? normaliseCode(codes.reader) : "";
   // Always run both comparisons so timing doesn't reveal which code exists
   const [isAdmin, isReader] = await Promise.all([
-    codes.admin ? safeEqual(given, codes.admin) : Promise.resolve(false),
-    codes.reader ? safeEqual(given, codes.reader) : Promise.resolve(false),
+    admin ? safeEqual(given, admin) : Promise.resolve(false),
+    reader ? safeEqual(given, reader) : Promise.resolve(false),
   ]);
   if (isAdmin) return "admin";
   if (isReader) return "reader";

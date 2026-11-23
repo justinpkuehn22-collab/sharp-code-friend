@@ -12,6 +12,8 @@ interface PoemReaderProps {
   poem: Poem;
   isAdmin: boolean;
   startEditing: boolean;
+  // Shown above the editor when a poem was started from a writing prompt
+  prompt?: string;
   onClose: () => void;
   onPrevious?: () => void;
   onNext?: () => void;
@@ -58,7 +60,7 @@ const TagEditor = ({ tags, onChange }: { tags: string[]; onChange: (tags: string
   );
 };
 
-export const PoemReader = ({ poem, isAdmin, startEditing, onClose, onPrevious, onNext }: PoemReaderProps) => {
+export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onClose, onPrevious, onNext }: PoemReaderProps) => {
   const { updatePoem, deletePoem } = usePoemStore();
   const [isEditing, setIsEditing] = useState(isAdmin && startEditing);
   const contentRef = useRef<HTMLTextAreaElement>(null);
@@ -136,10 +138,10 @@ export const PoemReader = ({ poem, isAdmin, startEditing, onClose, onPrevious, o
               <Pencil size={14} />
             </button>
           )}
-          <button type="button" onClick={onCopy} className={cn(iconButton, "bg-secondary text-secondary-foreground")} aria-label="Copy poem">
+          <button type="button" onClick={onCopy} className={cn(iconButton, "border border-amber-300/40 bg-stone-900 text-amber-100")} aria-label="Copy poem">
             <Copy size={14} />
           </button>
-          <button type="button" onClick={onClose} className={cn(iconButton, "bg-primary text-primary-foreground")} aria-label="Close poem">
+          <button type="button" onClick={onClose} className={cn(iconButton, "brass-plate text-stone-900")} aria-label="Close poem">
             <X size={16} />
           </button>
         </div>
@@ -156,6 +158,11 @@ export const PoemReader = ({ poem, isAdmin, startEditing, onClose, onPrevious, o
           <div className="min-h-0 flex-1 overflow-y-auto px-8 py-10 sm:px-14 sm:py-14">
             {isEditing ? (
               <>
+                {prompt && (
+                  <p className="mb-6 rounded-md border border-amber-400/25 bg-amber-400/10 px-4 py-3 font-body text-sm italic text-amber-100/85">
+                    {prompt}
+                  </p>
+                )}
                 <input
                   value={poem.title}
                   onChange={(e) => updatePoem(poem.id, { title: e.target.value.slice(0, 200) })}
