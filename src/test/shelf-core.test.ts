@@ -86,7 +86,7 @@ describe("validatePoems", () => {
   it("accepts old poems without tags or mood", () => {
     const result = validatePoems([{ id: "a", title: "Wolf", content: "Line" }]);
     expect(result).toEqual({
-      poems: [{ id: "a", title: "Wolf", content: "Line", tags: [], mood: null, createdAt: null, updatedAt: null }],
+      poems: [{ id: "a", title: "Wolf", content: "Line", tags: [], mood: null, createdAt: null, updatedAt: null, kind: "own", author: null }],
     });
   });
 
@@ -110,7 +110,7 @@ describe("validatePoems", () => {
 
 describe("readerView", () => {
   it("hides empty poems", () => {
-    const base = { tags: [], mood: null, createdAt: null, updatedAt: null };
+    const base = { tags: [], mood: null, createdAt: null, updatedAt: null, kind: "own" as const, author: null };
     const view = readerView([
       { id: "a", title: "Wolf", content: "Line", ...base },
       { id: "b", title: "Untitled", content: "   ", ...base },
@@ -166,5 +166,22 @@ describe("resolveCodes", () => {
     expect(resolveCodes(env({ SITE_PASSWORD: "1234" }))).toMatchObject({ admin: null, reader: "1234" });
     expect(resolveCodes(env({ SITE_PASSWORD: "1106", ADMIN_CODE: "1106" }))).toMatchObject({ admin: "1106", reader: null });
     expect(resolveCodes(env({ SITE_PASSWORD: "1234", READER_CODE: "Ontherocks" })).reader).toBe("Ontherocks");
+  });
+});
+
+describe("favorites from the library", () => {
+  it("keeps the author for favorites and drops it for own poems", () => {
+    const result = validatePoems([
+      { id: "a", title: "Ozymandias", content: "I met a traveller", kind: "favorite", author: " Percy Bysshe Shelley " },
+      { id: "b", title: "Wolf", content: "Line", author: "Someone else" },
+    ]);
+    if (!("poems" in result)) throw new Error(result.error);
+    expect(result.poems[0]).toMatchObject({ kind: "favorite", author: "Percy Bysshe Shelley" });
+    expect(result.poems[1]).toMatchObject({ kind: "own", author: null });
+  });
+
+  it("rejects favorites without an author and unknown kinds", () => {
+    expect(validatePoems([{ id: "a", title: "t", content: "x", kind: "favorite" }])).toHaveProperty("error");
+    expect(validatePoems([{ id: "a", title: "t", content: "x", kind: "stolen" }])).toHaveProperty("error");
   });
 });

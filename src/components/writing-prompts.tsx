@@ -65,9 +65,6 @@ export const WritingPrompts = ({ poems, onWrite }: WritingPromptsProps) => {
           </li>
         ))}
       </ul>
-      {mood === null && (
-        <p className="mt-2 text-xs text-amber-100/40">These lean toward moods your shelf has the fewest poems in.</p>
-      )}
     </section>
   );
 };

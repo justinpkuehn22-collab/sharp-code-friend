@@ -1,3 +1,6 @@
+import { cn } from "@/lib/utils";
+import type { RhymeKind } from "@/lib/rhyme-sounds";
+
 // One colour per rhyme sound, readable on the dark page
 export const rhymeTextColors = [
   "text-rose-300",
@@ -20,3 +23,12 @@ export const rhymeBadgeColors = [
   "bg-lime-400/20 text-lime-200",
 ];
 export const colorIndexForLetter = (letter: string): number => (letter.charCodeAt(0) - 65) % rhymeTextColors.length;
+
+// The badge style for each kind of rhyme: solid for perfect, outlined for the looser kinds
+export const rhymeBadgeStyle = (kind: RhymeKind | null, colour: string): string => {
+  if (kind === "perfect") return colour;
+  if (kind === "multi") return cn(colour, "ring-1 ring-inset ring-current");
+  if (kind === "slant") return "border border-dashed border-current bg-transparent";
+  if (kind === "consonance") return "border border-dotted border-current bg-transparent opacity-80";
+  return "text-amber-100/30";
+};

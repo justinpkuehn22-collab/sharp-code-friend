@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Check, Copy, Send, Share2 } from "lucide-react";
+import { Check, Copy, Send } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { fetchReaderCode, inviteLink, inviteMessage } from "@/services/shelf-service";
@@ -8,12 +8,12 @@ import { copyText } from "@/lib/poem-clipboard";
 
 interface ShareInviteProps {
   token: string;
-  className: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
 // Admin only: a link (and the reader's code) to send to friends
-export const ShareInvite = ({ token, className }: ShareInviteProps) => {
-  const [open, setOpen] = useState(false);
+export const ShareInvite = ({ token, open, onOpenChange: setOpen }: ShareInviteProps) => {
   const [copied, setCopied] = useState<"link" | "message" | null>(null);
   const code = useQuery({
     queryKey: ["reader-code", token],
@@ -41,16 +41,11 @@ export const ShareInvite = ({ token, className }: ShareInviteProps) => {
 
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} className={className}>
-        <Share2 size={12} aria-hidden="true" /> Share with a friend
-      </button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md border-amber-200/15 bg-[hsl(20,18%,9%)] text-amber-50">
           <DialogHeader>
             <DialogTitle className="font-display text-2xl text-amber-100">Invite a friend in</DialogTitle>
-            <DialogDescription className="text-amber-100/60">
-              The link opens the door for them as a guest: they can read and search, but never edit.
-            </DialogDescription>
+            <DialogDescription className="sr-only">An invite link and the guest word for friends</DialogDescription>
           </DialogHeader>
 
           {code.isLoading ? (
@@ -96,9 +91,7 @@ export const ShareInvite = ({ token, className }: ShareInviteProps) => {
                   </button>
                 )}
               </div>
-              <p className="text-xs text-amber-100/45">
-                Anyone with this link can read your shelf. To lock old links out, change <code>READER_CODE</code> in Lovable; everyone gets signed out and needs the new word.
-              </p>
+
             </div>
           )}
         </DialogContent>

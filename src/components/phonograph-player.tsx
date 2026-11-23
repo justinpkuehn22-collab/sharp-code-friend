@@ -95,7 +95,6 @@ export const PhonographPlayer = () => {
               </li>
             ))}
           </ol>
-          <p className="mt-2 text-[10px] leading-snug text-amber-100/40">Original tunes, played live by the house band. The records play in order and start over at the end.</p>
         </div>
       )}
 

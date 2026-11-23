@@ -23,6 +23,9 @@ export interface StoredPoem {
   mood: Mood | null;
   createdAt: string | null;
   updatedAt: string | null;
+  // "own" for the poet's work; "favorite" for a classic saved from the library
+  kind: "own" | "favorite";
+  author: string | null;
 }
 
 export const limits = {
@@ -32,6 +35,7 @@ export const limits = {
   maxTags: 12,
   maxTagLength: 30,
   maxIdLength: 100,
+  maxAuthor: 120,
   maxBodyBytes: 2_000_000,
   sessionHours: { reader: 24 * 30, admin: 12 } as Record<Role, number>,
 };
@@ -151,7 +155,7 @@ export const validatePoems = (input: unknown): { poems: StoredPoem[] } | { error
   const poems: StoredPoem[] = [];
   for (const raw of input) {
     if (!isRecord(raw)) return { error: "Each poem must be an object" };
-    const { id, title, content, tags, mood, createdAt, updatedAt } = raw;
+    const { id, title, content, tags, mood, createdAt, updatedAt, kind, author } = raw;
     if (typeof id !== "string" || !id || id.length > limits.maxIdLength) return { error: "Invalid poem id" };
     if (seen.has(id)) return { error: "Duplicate poem id" };
     seen.add(id);
@@ -172,6 +176,12 @@ export const validatePoems = (input: unknown): { poems: StoredPoem[] } | { error
       if (typeof mood !== "string" || !(moods as readonly string[]).includes(mood)) return { error: "Invalid mood" };
       cleanMood = mood as Mood;
     }
+    if (kind !== undefined && kind !== "own" && kind !== "favorite") return { error: "Invalid kind" };
+    if (author !== undefined && author !== null && (typeof author !== "string" || author.length > limits.maxAuthor)) {
+      return { error: "Invalid author" };
+    }
+    const isFavorite = kind === "favorite";
+    if (isFavorite && (typeof author !== "string" || author.trim() === "")) return { error: "Favorites need an author" };
     poems.push({
       id,
       title,
@@ -180,6 +190,8 @@ export const validatePoems = (input: unknown): { poems: StoredPoem[] } | { error
       mood: cleanMood,
       createdAt: optionalDate(createdAt),
       updatedAt: optionalDate(updatedAt),
+      kind: isFavorite ? "favorite" : "own",
+      author: isFavorite ? (author as string).trim() : null,
     });
   }
   return { poems };

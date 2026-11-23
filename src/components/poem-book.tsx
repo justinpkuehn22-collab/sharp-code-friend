@@ -24,12 +24,29 @@ const leathers = [
   "bg-[linear-gradient(90deg,hsl(25_40%_14%),hsl(28_42%_22%)_45%,hsl(25_40%_13%))]",
   "bg-[linear-gradient(90deg,hsl(20_8%_7%),hsl(20_8%_14%)_45%,hsl(20_8%_6%))]",
 ];
+// Cloth bindings for favorites from the library: parchment, slate and faded rose
+const cloths = [
+  "bg-[linear-gradient(90deg,hsl(40_30%_62%),hsl(42_34%_74%)_45%,hsl(40_30%_60%))]",
+  "bg-[linear-gradient(90deg,hsl(210_10%_36%),hsl(210_12%_46%)_45%,hsl(210_10%_34%))]",
+  "bg-[linear-gradient(90deg,hsl(350_22%_44%),hsl(350_24%_54%)_45%,hsl(350_22%_42%))]",
+];
+
+const surname = (author: string | null): string => {
+  if (!author) return "";
+  // "George Gordon, Lord Byron" -> "Byron"; "Percy Bysshe Shelley" -> "Shelley"
+  const parts = author.trim().split(/\s+/);
+  return parts[parts.length - 1];
+};
 
 // One book on the shelf. Opening it is handled by the shelf, so books stay simple.
 export const PoemBook = ({ poem, index, onOpen }: PoemBookProps) => {
   const height = heights[Math.floor(seededRandom(index + 1) * heights.length)];
   const width = widths[Math.floor(seededRandom(index + 50) * widths.length)];
-  const leather = leathers[Math.floor(seededRandom(index + 90) * leathers.length)];
+  const isFavorite = poem.kind === "favorite";
+  const binding = isFavorite
+    ? cloths[Math.floor(seededRandom(index + 90) * cloths.length)]
+    : leathers[Math.floor(seededRandom(index + 90) * leathers.length)];
+  const lightCloth = isFavorite && binding === cloths[0];
   const title = poem.title.trim() || "Untitled";
 
   return (
@@ -43,9 +60,9 @@ export const PoemBook = ({ poem, index, onOpen }: PoemBookProps) => {
         "focus-visible:z-20 focus-visible:-translate-y-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400",
         height,
         width,
-        leather,
+        binding,
       )}
-      aria-label={`Open poem: ${title}${poem.mood ? ` (${moodLabels[poem.mood]})` : ""}`}
+      aria-label={`Open poem: ${title}${isFavorite && poem.author ? ` by ${poem.author}` : ""}${poem.mood ? ` (${moodLabels[poem.mood]})` : ""}`}
     >
       {/* Leather grain */}
       <div className="wood-grain-v pointer-events-none absolute inset-0 rounded-b-md rounded-t-sm opacity-30 mix-blend-overlay" />
@@ -59,15 +76,28 @@ export const PoemBook = ({ poem, index, onOpen }: PoemBookProps) => {
       <span
         className={cn(
           "absolute left-1/2 top-1/2 max-h-[85%] -translate-x-1/2 -translate-y-1/2 rotate-180 overflow-hidden text-ellipsis whitespace-nowrap",
-          "font-display text-[9px] font-bold text-white/90 drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)] [writing-mode:vertical-rl] sm:text-[11px]",
+          "font-display text-[9px] font-bold drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)] [writing-mode:vertical-rl] sm:text-[11px]",
+          lightCloth ? "text-stone-900 drop-shadow-none" : "text-white/90",
           "transition-all duration-500 group-hover:tracking-wider group-hover:text-white group-hover:drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]",
         )}
       >
         {title}
       </span>
 
+      {isFavorite && (
+        <span
+          className={cn(
+            "absolute bottom-1.5 left-1/2 -translate-x-1/2 text-[7px] font-semibold uppercase tracking-wider",
+            lightCloth ? "text-stone-800/80" : "text-amber-100/70",
+          )}
+        >
+          {surname(poem.author).slice(0, 7)}
+        </span>
+      )}
+
       <div
         className={cn(
+          isFavorite && "hidden",
           "absolute -top-3 right-1.5 z-10 h-8 w-2.5 rounded-b-sm shadow-md [clip-path:polygon(0_0,100%_0,100%_100%,50%_75%,0_100%)]",
           bookmarkColors[index % 2],
         )}

@@ -12,6 +12,8 @@ const poem = (mood: Poem["mood"], content = "a line"): Poem => ({
   mood,
   createdAt: null,
   updatedAt: null,
+  kind: "own",
+  author: null,
 });
 
 describe("writing prompts", () => {

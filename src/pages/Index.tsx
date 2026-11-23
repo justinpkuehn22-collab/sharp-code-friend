@@ -1,5 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
-import { BarChart3, Check, Eye, EyeOff, ClipboardPaste, Copy, CloudOff, Loader2, LogOut, Plus } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { fetchBackendFeatures } from "@/services/shelf-service";
+import { Check, CloudOff, Eye, Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { usePoemStore } from "@/stores/poem-store";
 import { useSessionStore } from "@/stores/session-store";
@@ -11,14 +13,15 @@ import { ShelfSearch } from "@/components/shelf-search";
 import { InsightsPanel } from "@/components/insights-panel";
 import { PhonographPlayer } from "@/components/phonograph-player";
 import { CheersCelebration } from "@/components/cheers-celebration";
-import { RoomThemePicker } from "@/components/room-theme-picker";
+import { RoomMenu } from "@/components/room-menu";
 import { ShareInvite } from "@/components/share-invite";
+import { LibraryPanel } from "@/components/library-panel";
 import { useLoungeStore } from "@/stores/lounge-store";
 import { WritingPrompts } from "@/components/writing-prompts";
 import type { WritingPrompt } from "@/data/writing-prompts";
 import { copyText, poemsToText, textToPoems } from "@/lib/poem-clipboard";
 import { chunk, emptyFilter, filterPoems, moodsInUse, tagCounts, type PoemFilter } from "@/lib/poem-search";
-import { isWritten } from "@/data/poems";
+import { isOwn, isWritten, type Poem } from "@/data/poems";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 
@@ -47,6 +50,24 @@ const SaveIndicator = ({ status }: { status: SaveStatus }) => {
   return null;
 };
 
+// One shelf of books with its plank
+const Shelf = ({ books, bookIndex, onOpen }: { books: Poem[]; bookIndex: Map<string, number>; onOpen: (id: string) => void }) => (
+  <div className="relative">
+    <div className="flex items-end justify-center gap-2 px-6 pb-0 pt-8 sm:gap-3 sm:px-10">
+      {books.map((poem) => (
+        <div key={poem.id} className="animate-fade-in">
+          <PoemBook poem={poem} index={bookIndex.get(poem.id) ?? 0} onOpen={onOpen} />
+        </div>
+      ))}
+    </div>
+    <div className="shelf-plank relative h-4 overflow-hidden">
+      <div className="absolute inset-x-0 top-0 h-px bg-white/10" />
+    </div>
+    <div className="shelf-plank-front h-3" />
+    <div className="shelf-plank-shadow h-1" />
+  </div>
+);
+
 export const Index = () => {
   const { poems, createPoem, discardIfEmpty, importPoems } = usePoemStore();
   const { token, role, signOut } = useSessionStore();
@@ -55,6 +76,9 @@ export const Index = () => {
   const [viewAsGuest, setViewAsGuest] = useState(false);
   const isAdmin = isOwner && !viewAsGuest;
   const saveStatus = useShelfAutosave(token, isOwner);
+  // The library only appears once the backend can store favorites properly
+  const features = useQuery({ queryKey: ["backend-features"], queryFn: fetchBackendFeatures, enabled: isOwner, staleTime: 5 * 60_000 });
+  const canFavorite = features.data?.includes("favorites") ?? false;
 
   const booksPerShelf = useIsMobile() ? 5 : 7;
   const [filter, setFilter] = useState<PoemFilter>(emptyFilter);
@@ -62,20 +86,29 @@ export const Index = () => {
   const [freshId, setFreshId] = useState<string | null>(null);
   const [freshPrompt, setFreshPrompt] = useState<string | null>(null);
   const [insightsOpen, setInsightsOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
   const [cheers, setCheers] = useState<number | null>(null);
   const withSound = useLoungeStore((s) => s.typewriterSounds);
   const endCheers = useCallback(() => setCheers(null), []);
 
   const written = useMemo(() => poems.filter(isWritten), [poems]);
+  // JK's own poems, used for insights and writing prompts
+  const own = useMemo(() => written.filter(isOwn), [written]);
   const visible = useMemo(() => filterPoems(written, filter), [written, filter]);
-  const shelves = useMemo(() => chunk(visible, booksPerShelf), [visible, booksPerShelf]);
+  const visibleOwn = useMemo(() => visible.filter(isOwn), [visible]);
+  const visibleFavorites = useMemo(() => visible.filter((p) => !isOwn(p)), [visible]);
+  // Own poems first, then the favorites, so reading order follows the shelves
+  const readingOrder = useMemo(() => [...visibleOwn, ...visibleFavorites], [visibleOwn, visibleFavorites]);
+  const shelves = useMemo(() => chunk(visibleOwn, booksPerShelf), [visibleOwn, booksPerShelf]);
+  const favoriteShelves = useMemo(() => chunk(visibleFavorites, booksPerShelf), [visibleFavorites, booksPerShelf]);
   const tags = useMemo(() => tagCounts(written), [written]);
   // Each book keeps its own size no matter how the shelf is filtered
   const bookIndex = useMemo(() => new Map(written.map((p, i) => [p.id, i])), [written]);
   const moods = useMemo(() => moodsInUse(written), [written]);
 
   const openPoem = poems.find((p) => p.id === openId) ?? null;
-  const openIndex = visible.findIndex((p) => p.id === openId);
+  const openIndex = readingOrder.findIndex((p) => p.id === openId);
 
   const close = () => {
     if (openId) discardIfEmpty(openId);
@@ -108,6 +141,12 @@ export const Index = () => {
     else toast.success(`Added ${added} ${added === 1 ? "poem" : "poems"} to your shelf.`);
   };
 
+  const copyAll = () => {
+    copyText(poemsToText(own))
+      .then(() => toast.success("All your poems are copied. Paste them anywhere to save or share."))
+      .catch(() => toast.error("Couldn't copy your poems. Please try again."));
+  };
+
   const leave = () => {
     if (isOwner && saveStatus === "saving") {
       toast.message("Hold on, still saving your last change.");
@@ -121,23 +160,12 @@ export const Index = () => {
       <p className="neon-amber mb-5 animate-neon-flicker font-['Dancing_Script',cursive] text-3xl sm:text-4xl" aria-hidden="true">
         The poetry room
       </p>
-      {isOwner && viewAsGuest && (
-        <div className="mb-4 flex w-full max-w-3xl flex-wrap items-center justify-between gap-2 rounded-md border border-amber-400/30 bg-amber-400/10 px-4 py-2 text-sm text-amber-100" role="status">
-          <span className="flex items-center gap-2">
-            <Eye size={14} aria-hidden="true" /> Guest view: this is exactly what friends with the reader's code see.
-          </span>
-          <button type="button" onClick={() => setViewAsGuest(false)} className="font-semibold underline hover:text-amber-50">
-            Back to admin
-          </button>
-        </div>
-      )}
-
       <header className="mb-4 flex w-full max-w-3xl flex-wrap items-center justify-between gap-3">
         <p className="flex items-center gap-2 font-display text-sm italic text-amber-100/70">
           <span className="rounded-sm border border-amber-400/40 px-1.5 py-px font-body text-[10px] not-italic uppercase tracking-[0.2em] text-amber-300">
-            {isOwner ? (viewAsGuest ? "Admin · guest view" : "Admin") : "Guest"}
+            {isOwner ? (viewAsGuest ? "Guest view" : "Admin") : "Guest"}
           </span>
-          {isAdmin ? "Welcome back. The house is yours." : "Pull up a chair and read a while."}
+          {isOwner && viewAsGuest && <Eye size={13} aria-hidden="true" className="not-italic" />}
         </p>
         <div className="flex flex-wrap items-center gap-2">
           {isAdmin && <SaveIndicator status={saveStatus} />}
@@ -146,33 +174,21 @@ export const Index = () => {
               <Plus size={12} aria-hidden="true" /> Write a new poem
             </button>
           )}
-          {isAdmin && token && (
-            <ShareInvite token={token} className={`${pill} border border-amber-100/20 bg-black/30 text-amber-100/85 hover:text-amber-50`} />
-          )}
-          {isOwner && (
-            <button
-              type="button"
-              onClick={() => {
-                setOpenId(null);
-                setInsightsOpen(false);
-                setViewAsGuest((v) => !v);
-              }}
-              aria-pressed={viewAsGuest}
-              className={`${pill} border border-amber-100/20 bg-black/30 text-amber-100/85 hover:text-amber-50`}
-            >
-              {viewAsGuest ? <EyeOff size={12} aria-hidden="true" /> : <Eye size={12} aria-hidden="true" />}
-              {viewAsGuest ? "Admin view" : "View as guest"}
-            </button>
-          )}
-          {isAdmin && (
-            <button type="button" onClick={() => setInsightsOpen(true)} className={`${pill} brass-plate text-stone-900 hover:brightness-110`}>
-              <BarChart3 size={12} aria-hidden="true" /> Insights
-            </button>
-          )}
-          <RoomThemePicker className={`${pill} border border-amber-100/20 bg-black/30 text-amber-100/85 hover:text-amber-50`} />
-          <button type="button" onClick={leave} className={`${pill} border border-amber-100/20 bg-black/30 text-amber-100/85 hover:text-amber-50`}>
-            <LogOut size={12} aria-hidden="true" /> Leave
-          </button>
+          <RoomMenu
+            isOwner={isOwner}
+            viewAsGuest={viewAsGuest}
+            className={`${pill} border border-amber-100/20 bg-black/30 text-amber-100/85 hover:text-amber-50`}
+            onShare={() => setShareOpen(true)}
+            onLibrary={canFavorite ? () => setLibraryOpen(true) : undefined}
+            onInsights={() => setInsightsOpen(true)}
+            onToggleGuestView={() => {
+              setOpenId(null);
+              setViewAsGuest((v) => !v);
+            }}
+            onCopyAll={copyAll}
+            onPaste={() => void paste()}
+            onLeave={leave}
+          />
         </div>
       </header>
 
@@ -197,9 +213,6 @@ export const Index = () => {
                 aria-label="Write a new poem"
               >
                 <GrandfatherClock />
-                <span className="mt-3 rounded-full border border-amber-400/40 bg-black/50 px-3 py-1 font-display text-xs italic text-amber-100/80 transition group-hover:border-amber-300 group-hover:text-amber-50">
-                  It's time to write. Tap the clock.
-                </span>
               </button>
             ) : (
               <GrandfatherClock />
@@ -216,14 +229,14 @@ export const Index = () => {
             onRandom={random}
           />
 
-          {shelves.length === 0 && (
+          {shelves.length === 0 && favoriteShelves.length === 0 && (
             <div className="px-6 pb-2 pt-10 text-center">
               <p className="font-display text-lg italic text-amber-100/70">
                 {written.length === 0
                   ? isAdmin
                     ? "Your shelf is waiting for its first poem."
-                    : "No poems on the shelf yet. Check back soon."
-                  : "No poems match that. Try another word or mood."}
+                    : "No poems on the shelf yet."
+                  : "No poems match that."}
               </p>
               <div className="shelf-plank mt-8 h-4" />
               <div className="shelf-plank-front h-3" />
@@ -231,47 +244,25 @@ export const Index = () => {
           )}
 
           {shelves.map((books, shelfIdx) => (
-            <div key={shelfIdx} className="relative">
-              <div className="flex items-end justify-center gap-2 px-6 pb-0 pt-8 sm:gap-3 sm:px-10">
-                {books.map((poem) => (
-                  <div key={poem.id} className="animate-fade-in">
-                    <PoemBook poem={poem} index={bookIndex.get(poem.id) ?? 0} onOpen={setOpenId} />
-                  </div>
-                ))}
-              </div>
-              <div className="shelf-plank relative h-4 overflow-hidden">
-                <div className="absolute inset-x-0 top-0 h-px bg-white/10" />
-              </div>
-              <div className="shelf-plank-front h-3" />
-              <div className="shelf-plank-shadow h-1" />
-            </div>
+            <Shelf key={`own-${shelfIdx}`} books={books} bookIndex={bookIndex} onOpen={setOpenId} />
           ))}
 
-          {isAdmin ? (
-            <div className="flex flex-wrap items-center justify-center gap-3 pb-5 pt-6">
-              <button type="button" onClick={() => writeNew()} className={`${pill} bg-amber-600 text-amber-50 hover:bg-amber-500`}>
-                <Plus size={12} aria-hidden="true" /> Write a new poem
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  copyText(poemsToText(written))
-                    .then(() => toast.success("All your poems are copied. Paste them anywhere to save or share."))
-                    .catch(() => toast.error("Couldn't copy your poems. Please try again."));
-                }}
-                className={`${pill} border border-amber-100/20 bg-black/30 text-amber-100/85 hover:text-amber-50`}
-              >
-                <Copy size={12} aria-hidden="true" /> Copy all
-              </button>
-              <button type="button" onClick={() => void paste()} className={`${pill} border border-amber-100/20 bg-black/30 text-amber-100/85 hover:text-amber-50`}>
-                <ClipboardPaste size={12} aria-hidden="true" /> Paste poems
-              </button>
-            </div>
-          ) : (
-            <div className="pb-5 pt-6" />
+          {favoriteShelves.length > 0 && (
+            <>
+              <div className="flex justify-center pt-8">
+                <span className="brass-plate rounded-sm px-4 py-0.5 font-display text-[11px] font-semibold uppercase tracking-[0.3em] text-stone-900">
+                  JK's favorites
+                </span>
+              </div>
+              {favoriteShelves.map((books, shelfIdx) => (
+                <Shelf key={`fav-${shelfIdx}`} books={books} bookIndex={bookIndex} onOpen={setOpenId} />
+              ))}
+            </>
           )}
 
-          {isAdmin && <WritingPrompts poems={written} onWrite={writeNew} />}
+          <div className="pb-6 pt-6" />
+
+          {isAdmin && <WritingPrompts poems={own} onWrite={writeNew} />}
         </div>
 
         <div className="shelf-base h-6 rounded-b-sm" />
@@ -290,8 +281,8 @@ export const Index = () => {
           prompt={openPoem.id === freshId ? (freshPrompt ?? undefined) : undefined}
           onFinishedWriting={() => setCheers(Date.now())}
           onClose={close}
-          onPrevious={openIndex > 0 ? () => setOpenId(visible[openIndex - 1].id) : undefined}
-          onNext={openIndex >= 0 && openIndex < visible.length - 1 ? () => setOpenId(visible[openIndex + 1].id) : undefined}
+          onPrevious={openIndex > 0 ? () => setOpenId(readingOrder[openIndex - 1].id) : undefined}
+          onNext={openIndex >= 0 && openIndex < readingOrder.length - 1 ? () => setOpenId(readingOrder[openIndex + 1].id) : undefined}
         />
       )}
 
@@ -299,9 +290,9 @@ export const Index = () => {
 
       {cheers !== null && <CheersCelebration key={cheers} trigger={cheers} withSound={withSound} onDone={endCheers} />}
 
-      {isAdmin && (
-        <InsightsPanel open={insightsOpen} onOpenChange={setInsightsOpen} poems={written} onOpenPoem={setOpenId} />
-      )}
+      {isAdmin && <InsightsPanel open={insightsOpen} onOpenChange={setInsightsOpen} poems={own} onOpenPoem={setOpenId} />}
+      {isAdmin && token && <ShareInvite token={token} open={shareOpen} onOpenChange={setShareOpen} />}
+      {isAdmin && <LibraryPanel open={libraryOpen} onOpenChange={setLibraryOpen} />}
     </div>
   );
 };

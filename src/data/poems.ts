@@ -11,6 +11,9 @@ export interface Poem {
   mood: Mood | null;
   createdAt: string | null;
   updatedAt: string | null;
+  // "own" for JK's poems; "favorite" for a classic saved from the library
+  kind: "own" | "favorite";
+  author: string | null;
 }
 
 export type Role = "reader" | "admin";
@@ -27,3 +30,5 @@ export const moodLabels: Record<Mood, string> = {
 };
 
 export const isWritten = (poem: Pick<Poem, "content">): boolean => poem.content.trim() !== "";
+
+export const isOwn = (poem: Pick<Poem, "kind">): boolean => poem.kind !== "favorite";

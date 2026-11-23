@@ -94,7 +94,8 @@ describe("typewriter keys", () => {
   });
 });
 
-import { rhymeLetters, rhymeSchemeText } from "@/lib/rhyme";
+import { analyzeRhymes, rhymeKindCounts, rhymeLetters, rhymeSchemeText } from "@/lib/rhyme";
+import { classifyRhyme, lineEnding } from "@/lib/rhyme-sounds";
 import { countSyllables, lineSyllables } from "@/lib/syllables";
 
 describe("rhyme scheme letters", () => {
@@ -123,10 +124,59 @@ describe("sound-alike rhymes", () => {
   it("matches common endings spelled differently", () => {
     expect(rhymeSchemeText("the city cold and grey\nI never learned to stay")).toBe("AA");
     expect(rhymeSchemeText("I walk the street at night\nthe neon burning bright\nand then I write")).toBe("AAA");
-    expect(rhymeSchemeText("you swept in like a storm\nI'm sure of it, I'm yours\nyou know the score")).toBe("ABB");
+    expect(rhymeSchemeText("you swept in like a storm\nI'm sure of it, I'm yours\nyou know the score")).toBe("AAA");
   });
 
   it("doesn't rhyme words that only share a silent e", () => {
     expect(rhymeSchemeText("the stone\nthe time")).toBe("AB");
+  });
+});
+
+describe("kinds of rhyme", () => {
+  const kind = (a: string, b: string) => {
+    const ea = lineEnding(a);
+    const eb = lineEnding(b);
+    return ea && eb ? classifyRhyme(ea, eb) : null;
+  };
+
+  it("hears perfect rhymes, including ones spelled differently", () => {
+    for (const [a, b] of [
+      ["the night", "so bright"],
+      ["the city cold and grey", "I never learned to stay"],
+      ["the stone", "alone"],
+      ["the fire", "desire"],
+      ["the score", "I'm yours"],
+      ["forever", "never"],
+      ["broken", "spoken"],
+      ["electricity", "simplicity"],
+      ["after all", "I fall"],
+    ]) {
+      expect(kind(a, b), `${a} / ${b}`).toBe("perfect");
+    }
+  });
+
+  it("hears multi-syllable rhymes across words", () => {
+    expect(kind("I wanted to hold it", "in that one moment")).toBe("multi");
+    expect(kind("broken", "open")).toBe("multi");
+    expect(kind("the silence", "to violence")).toBe("multi");
+  });
+
+  it("hears slant rhymes and consonance", () => {
+    expect(kind("the night", "my life")).toBe("slant");
+    expect(kind("your heart", "it hurt")).toBe("consonance");
+    expect(kind("my mind", "the sound")).toBe("consonance");
+  });
+
+  it("doesn't call unrelated endings rhymes", () => {
+    expect(kind("the time", "the stone")).toBeNull();
+    expect(kind("the rain", "the dark")).toBeNull();
+  });
+
+  it("labels each line with its strongest rhyme", () => {
+    const poem = "I wanted to hold it\nthe night was long\nin that one moment\nI sang my song\nlove\nmove";
+    const result = analyzeRhymes(poem);
+    expect(result.map((r) => r.letter).join("")).toBe("ABABCC");
+    expect(result.map((r) => r.kind)).toEqual(["multi", "perfect", "multi", "perfect", "slant", "slant"]);
+    expect(rhymeKindCounts(poem)).toEqual({ perfect: 2, multi: 2, slant: 2, consonance: 0 });
   });
 });

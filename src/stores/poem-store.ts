@@ -14,12 +14,18 @@ interface PoemStore {
   // Drops a poem if it was left blank, so empty books never sit on the shelf
   discardIfEmpty: (id: string) => void;
   importPoems: (items: Array<Pick<Poem, "title" | "content">>) => number;
+  // Classics from the library that the owner favorites; guests see them on the shelf
+  addFavorite: (item: { title: string; author: string; content: string }) => string;
 }
 
 const newId = (): string =>
   `poem-${typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`}`;
 
 const nowIso = (): string => new Date().toISOString();
+
+// Stable id for a classic, so the same poem can't be favorited twice
+export const favoriteId = (title: string, author: string): string =>
+  `fav-${`${author}-${title}`.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 90)}`;
 
 export const usePoemStore = create<PoemStore>()((set, get) => ({
   poems: [],
@@ -29,7 +35,7 @@ export const usePoemStore = create<PoemStore>()((set, get) => ({
     const id = newId();
     const stamp = nowIso();
     set((state) => ({
-      poems: [...state.poems, { id, title: "", content: "", tags: [], mood: options.mood ?? null, createdAt: stamp, updatedAt: stamp }],
+      poems: [...state.poems, { id, title: "", content: "", tags: [], mood: options.mood ?? null, createdAt: stamp, updatedAt: stamp, kind: "own", author: null }],
     }));
     return id;
   },
@@ -46,11 +52,19 @@ export const usePoemStore = create<PoemStore>()((set, get) => ({
       set((state) => ({ poems: state.poems.filter((p) => p.id !== id), revision: state.revision + 1 }));
     }
   },
+  addFavorite: (item) => {
+    const id = favoriteId(item.title, item.author);
+    if (get().poems.some((p) => p.id === id)) return id;
+    const stamp = nowIso();
+    const favorite: Poem = { id, title: item.title, content: item.content, tags: [], mood: null, createdAt: stamp, updatedAt: stamp, kind: "favorite", author: item.author };
+    set((state) => ({ poems: [...state.poems, favorite], revision: state.revision + 1 }));
+    return id;
+  },
   importPoems: (items) => {
     const stamp = nowIso();
     const fresh: Poem[] = items
       .filter((item) => item.content.trim() !== "")
-      .map((item) => ({ id: newId(), title: item.title, content: item.content, tags: [], mood: null, createdAt: stamp, updatedAt: stamp }));
+      .map((item) => ({ id: newId(), title: item.title, content: item.content, tags: [], mood: null, createdAt: stamp, updatedAt: stamp, kind: "own" as const, author: null }));
     if (fresh.length > 0) set((state) => ({ poems: [...state.poems, ...fresh], revision: state.revision + 1 }));
     return fresh.length;
   },

@@ -2,11 +2,13 @@ import { useMemo, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Search } from "lucide-react";
 import { findRhymes } from "@/services/rhyme-service";
-import { lastWord, rhymeGroups, rhymeLetters, rhymeSchemeText } from "@/lib/rhyme";
+import { analyzeRhymes, lastWord, rhymeKindCounts, rhymeSchemeText } from "@/lib/rhyme";
+import { rhymeKindLabels } from "@/lib/rhyme-sounds";
+import { RhymeLegend } from "@/components/rhyme-legend";
 import { lineSyllables } from "@/lib/syllables";
 import { words } from "@/lib/poem-insights";
 import { formatNumber } from "@/lib/poem-insights";
-import { colorIndexForLetter, rhymeBadgeColors } from "@/lib/rhyme-colors";
+import { colorIndexForLetter, rhymeBadgeColors, rhymeBadgeStyle } from "@/lib/rhyme-colors";
 import { cn } from "@/lib/utils";
 
 interface WritersDeskProps {
@@ -17,8 +19,8 @@ interface WritersDeskProps {
 // A side panel for the poet: live counts, the rhyme scheme as it forms, and a rhyme finder
 export const WritersDesk = ({ content, onInsertWord }: WritersDeskProps) => {
   const lines = content.split("\n");
-  const letters = useMemo(() => rhymeLetters(content), [content]);
-  const rhyming = useMemo(() => rhymeGroups(content), [content]);
+  const lineRhymes = useMemo(() => analyzeRhymes(content), [content]);
+  const counts = useMemo(() => rhymeKindCounts(content), [content]);
   const scheme = useMemo(() => rhymeSchemeText(content), [content]);
   const writtenLines = lines.filter((l) => lastWord(l) !== null);
   const syllables = writtenLines.map(lineSyllables);
@@ -64,18 +66,21 @@ export const WritersDesk = ({ content, onInsertWord }: WritersDeskProps) => {
         {scheme ? (
           <>
             <p className="mb-2 break-words font-display text-lg tracking-[0.25em] text-amber-50">{scheme}</p>
+            <div className="mb-3">
+              <RhymeLegend counts={counts} />
+            </div>
             <ol className="space-y-1 text-xs">
               {lines.map((line, i) => {
-                const letter = letters[i];
+                const { letter, kind } = lineRhymes[i];
                 if (!letter) return null;
-                const rhymes = rhyming.has(i);
                 return (
                   <li key={i} className="flex items-center gap-2">
                     <span
                       className={cn(
                         "flex h-5 w-5 shrink-0 items-center justify-center rounded font-semibold",
-                        rhymes ? rhymeBadgeColors[colorIndexForLetter(letter)] : "bg-white/5 text-amber-100/40",
+                        kind ? rhymeBadgeStyle(kind, rhymeBadgeColors[colorIndexForLetter(letter)]) : "bg-white/5 text-amber-100/40",
                       )}
+                      title={kind ? rhymeKindLabels[kind] : "No rhyme"}
                     >
                       {letter}
                     </span>
@@ -87,7 +92,7 @@ export const WritersDesk = ({ content, onInsertWord }: WritersDeskProps) => {
             </ol>
           </>
         ) : (
-          <p className="text-xs text-amber-100/45">Start writing and the pattern of your end rhymes will appear here.</p>
+          <p className="text-xs text-amber-100/45">—</p>
         )}
       </section>
 
@@ -104,7 +109,7 @@ export const WritersDesk = ({ content, onInsertWord }: WritersDeskProps) => {
           />
         </form>
         {target.length < 2 ? (
-          <p className="text-xs text-amber-100/45">Type a word, or end a line and I'll look up rhymes for it.</p>
+          <p className="text-xs text-amber-100/45">—</p>
         ) : rhymes.isLoading ? (
           <p className="text-xs text-amber-100/45">Looking up rhymes for "{target}"…</p>
         ) : rhymes.isError ? (
