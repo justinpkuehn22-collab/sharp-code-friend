@@ -13,6 +13,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { roomThemes, useLoungeStore, type RoomTheme } from "@/stores/lounge-store";
+import { usePoemStore } from "@/stores/poem-store";
+import { useRoomTheme } from "@/components/room-theme-picker";
+import { toast } from "sonner";
 
 interface RoomMenuProps {
   isOwner: boolean;
@@ -32,8 +35,19 @@ const item = "gap-2 focus:bg-white/10 focus:text-amber-50";
 
 // Everything that isn't writing lives here, so the room stays uncluttered
 export const RoomMenu = ({ isOwner, viewAsGuest, className, onShare, onLibrary, onInsights, onToggleGuestView, onCopyAll, onPaste, onLeave }: RoomMenuProps) => {
-  const { roomTheme, setRoomTheme, typewriterSounds, setTypewriterSounds } = useLoungeStore();
+  const { setRoomTheme, typewriterSounds, setTypewriterSounds } = useLoungeStore();
+  const saveRoomTheme = usePoemStore((s) => s.saveRoomTheme);
+  const theme = useRoomTheme();
   const owner = isOwner && !viewAsGuest;
+  // The owner's pick is saved to his shelf and follows him everywhere; a guest's stays on their device
+  const pickTheme = (t: RoomTheme) => {
+    if (owner) {
+      saveRoomTheme(t);
+      toast.success(`Saved. Your room will open in ${roomThemes.find((x) => x.id === t)?.label ?? t} on every device.`);
+    } else if (!viewAsGuest) {
+      setRoomTheme(t);
+    }
+  };
 
   return (
     <DropdownMenu>
@@ -70,10 +84,12 @@ export const RoomMenu = ({ isOwner, viewAsGuest, className, onShare, onLibrary, 
             <Palette size={14} aria-hidden="true" /> Theme
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent className={content}>
-            <DropdownMenuRadioGroup value={roomTheme} onValueChange={(v) => setRoomTheme(v as RoomTheme)}>
+            {viewAsGuest && <p className="px-2 py-1 text-[11px] text-amber-100/50">Guests start in Gatsby green and can pick their own.</p>}
+            <DropdownMenuRadioGroup value={theme} onValueChange={(v) => pickTheme(v as RoomTheme)}>
               {roomThemes.map((t) => (
                 <DropdownMenuRadioItem key={t.id} value={t.id} className={item}>
                   {t.label}
+                  {t.id === "emerald" && <span className="ml-auto text-[10px] text-amber-100/40">guests' default</span>}
                 </DropdownMenuRadioItem>
               ))}
             </DropdownMenuRadioGroup>

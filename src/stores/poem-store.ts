@@ -1,10 +1,17 @@
 import { create } from "zustand";
 import { isWritten, type Mood, type Poem } from "@/data/poems";
+import { isSettingsRecord, readSettings, settingsRecord, type RoomSettings } from "@/lib/room-settings";
+import type { RoomTheme } from "@/stores/lounge-store";
 
 type EditablePoemFields = Pick<Poem, "title" | "content" | "tags" | "mood">;
 
 interface PoemStore {
   poems: Poem[];
+  // The owner's saved room settings, kept apart from the poems
+  roomSettings: RoomSettings | null;
+  saveRoomTheme: (theme: RoomTheme) => void;
+  // What gets saved: the poems plus the settings record
+  shelfPayload: () => Poem[];
   // Bumps on every local edit so the sync hook knows when to save
   revision: number;
   setPoems: (poems: Poem[]) => void;
@@ -29,8 +36,18 @@ export const favoriteId = (title: string, author: string): string =>
 
 export const usePoemStore = create<PoemStore>()((set, get) => ({
   poems: [],
+  roomSettings: null,
   revision: 0,
-  setPoems: (poems) => set({ poems: poems.filter(isWritten) }),
+  setPoems: (poems) => {
+    const record = poems.find(isSettingsRecord);
+    set({ poems: poems.filter((p) => !isSettingsRecord(p) && isWritten(p)), roomSettings: record ? readSettings(record) : null });
+  },
+  saveRoomTheme: (theme) => set((state) => ({ roomSettings: { ...(state.roomSettings ?? {}), theme }, revision: state.revision + 1 })),
+  shelfPayload: () => {
+    const { poems, roomSettings } = get();
+    const written = poems.filter(isWritten);
+    return roomSettings ? [...written, settingsRecord(roomSettings, nowIso())] : written;
+  },
   createPoem: (options = {}) => {
     const id = newId();
     const stamp = nowIso();
