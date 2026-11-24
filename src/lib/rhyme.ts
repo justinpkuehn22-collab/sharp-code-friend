@@ -153,3 +153,23 @@ export const rhymeKindCounts = (text: string): Record<RhymeKind, number> => {
   for (const r of analyzeRhymes(text)) if (r.kind) counts[r.kind]++;
   return counts;
 };
+
+const smallEndings = new Set(["it", "em", "a", "an", "the", "of", "to"]);
+
+// Splits a line into what comes before its rhyming ending, the ending itself and any
+// trailing dashes, punctuation or spaces, so head + end + tail is exactly the line.
+// The ending is the last word, or the last two when it ends on a small word ("hold it").
+export const splitEnding = (line: string): { head: string; end: string; tail: string } => {
+  const match = /^([\s\S]*?)(\S*[A-Za-z]\S*)((?:\s+[^A-Za-z\s]+)*\s*)$/.exec(line);
+  if (!match) return { head: line, end: "", tail: "" };
+  let [, head, end] = match;
+  const tail = match[3];
+  if (smallEndings.has(end.toLowerCase().replace(/[^a-z]/g, ""))) {
+    const before = /^([\s\S]*?)(\S*[A-Za-z]\S*\s+)$/.exec(head);
+    if (before) {
+      head = before[1];
+      end = before[2] + end;
+    }
+  }
+  return { head, end, tail };
+};

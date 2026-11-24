@@ -14,10 +14,13 @@ interface LoungeStore {
   musicVolume: number;
   roomTheme: RoomTheme;
   showRhymes: boolean;
+  // Colour rhyming line endings in the editor while writing
+  rhymeColorsWhileWriting: boolean;
   setTypewriterSounds: (on: boolean) => void;
   setMusicVolume: (volume: number) => void;
   setRoomTheme: (theme: RoomTheme) => void;
   setShowRhymes: (on: boolean) => void;
+  setRhymeColorsWhileWriting: (on: boolean) => void;
 }
 
 // Sound, theme and reading preferences, remembered in this browser
@@ -28,10 +31,12 @@ export const useLoungeStore = create<LoungeStore>()(
       musicVolume: 0.6,
       roomTheme: "speakeasy",
       showRhymes: false,
+      rhymeColorsWhileWriting: true,
       setTypewriterSounds: (typewriterSounds) => set({ typewriterSounds }),
       setMusicVolume: (musicVolume) => set({ musicVolume: Math.min(1, Math.max(0, musicVolume)) }),
       setRoomTheme: (roomTheme) => set({ roomTheme }),
       setShowRhymes: (showRhymes) => set({ showRhymes }),
+      setRhymeColorsWhileWriting: (rhymeColorsWhileWriting) => set({ rhymeColorsWhileWriting }),
     }),
     { name: "poetry-shelf-lounge" },
   ),

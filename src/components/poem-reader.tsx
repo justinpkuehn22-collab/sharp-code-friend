@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type TouchEvent as ReactTouchEvent } from "react";
 import { createPortal } from "react-dom";
-import { ChevronLeft, ChevronRight, ClipboardCheck, Copy, Keyboard, Lamp, LampDesk, MoreHorizontal, NotebookPen, Pencil, Trash2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, ClipboardCheck, Copy, Highlighter, Keyboard, Lamp, LampDesk, MoreHorizontal, NotebookPen, Pencil, Trash2, X } from "lucide-react";
+import { RhymeTextarea } from "@/components/rhyme-textarea";
 import { RhymedPoem } from "@/components/rhymed-poem";
 import { CritiquePanel } from "@/components/critique-panel";
 import {
@@ -35,7 +36,7 @@ interface PoemReaderProps {
 }
 
 const pillButton =
-  "flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-semibold shadow-xl transition-all duration-200 hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300";
+  "flex h-10 items-center gap-1.5 rounded-full px-3 text-xs sm:h-9 font-semibold shadow-xl transition-all duration-200 hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300";
 const quiet = "border border-amber-300/40 bg-stone-900 text-amber-100";
 
 const menuContent = "z-[70] w-52 border-amber-300/25 bg-stone-950/95 text-amber-100";
@@ -82,10 +83,37 @@ const TagEditor = ({ tags, onChange }: { tags: string[]; onChange: (tags: string
   );
 };
 
-export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onFinishedWriting, onClose, onPrevious, onNext }: PoemReaderProps) => {
+// Long poems still reveal in a few seconds; short ones keep the slow, typed feel
+const revealSpeed = (text: string, slowest: number, total: number) => Math.max(1, Math.min(slowest, Math.round(total / Math.max(1, text.length))));
+
+export const PoemReader = ({ poem: stored, isAdmin, startEditing, prompt, onFinishedWriting, onClose, onPrevious, onNext }: PoemReaderProps) => {
   const { updatePoem, deletePoem } = usePoemStore();
   const [isEditing, setIsEditing] = useState(isAdmin && startEditing);
-  const { typewriterSounds, setTypewriterSounds, showRhymes, setShowRhymes } = useLoungeStore();
+  const { typewriterSounds, setTypewriterSounds, showRhymes, setShowRhymes, rhymeColorsWhileWriting, setRhymeColorsWhileWriting } = useLoungeStore();
+
+  // While writing, the words live here and reach the shelf a moment after typing pauses.
+  // Saving every keystroke straight to the shelf re-drew the whole room, which made
+  // typing lag on phones.
+  const [draft, setDraft] = useState({ title: stored.title, content: stored.content });
+  const draftRef = useRef(draft);
+  const commitTimer = useRef<number | null>(null);
+  const flush = useCallback(() => {
+    if (commitTimer.current) window.clearTimeout(commitTimer.current);
+    commitTimer.current = null;
+    const current = usePoemStore.getState().poems.find((p) => p.id === stored.id);
+    const { title, content } = draftRef.current;
+    if (current && (current.title !== title || current.content !== content)) updatePoem(stored.id, { title, content });
+  }, [stored.id, updatePoem]);
+  const edit = (patch: Partial<typeof draft>) => {
+    const next = { ...draftRef.current, ...patch };
+    draftRef.current = next;
+    setDraft(next);
+    if (commitTimer.current) window.clearTimeout(commitTimer.current);
+    commitTimer.current = window.setTimeout(flush, 400);
+  };
+  // Whatever is still waiting is saved when the poem closes
+  useEffect(() => flush, [flush]);
+  const poem: Poem = isEditing ? { ...stored, title: draft.title, content: draft.content } : stored;
   // Writer tools: the side desk, and a dimmer room for focus
   const [deskOpen, setDeskOpen] = useState(() => typeof window === "undefined" || window.innerWidth >= 1024);
   const [lightsDown, setLightsDown] = useState(false);
@@ -98,7 +126,7 @@ export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onFinishedWrit
     const before = text.slice(0, start);
     const spacer = before === "" || /\s$/.test(before) ? "" : " ";
     const next = `${before}${spacer}${word}${text.slice(end)}`;
-    updatePoem(poem.id, { content: next.slice(0, 20000) });
+    edit({ content: next.slice(0, 20000) });
     const caret = start + spacer.length + word.length;
     window.setTimeout(() => {
       el?.focus();
@@ -115,12 +143,13 @@ export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onFinishedWrit
   const openedWith = useRef(`${poem.title}\n${poem.content}`);
   const celebrated = useRef(false);
   const finishWriting = useCallback(() => {
+    flush();
     const changed = `${poem.title}\n${poem.content}` !== openedWith.current;
     if (isAdmin && changed && poem.content.trim() !== "" && !celebrated.current) {
       celebrated.current = true;
       onFinishedWriting?.();
     }
-  }, [isAdmin, poem.title, poem.content, onFinishedWriting]);
+  }, [flush, isAdmin, poem.title, poem.content, onFinishedWriting]);
   const close = useCallback(() => {
     finishWriting();
     onClose();
@@ -128,8 +157,8 @@ export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onFinishedWrit
   const hasContent = poem.content.trim() !== "";
   const showTypewriter = !isEditing && hasContent;
 
-  const title = useTypewriter(poem.title, 90, showTypewriter);
-  const body = useTypewriter(poem.content, 40, showTypewriter && title.done);
+  const title = useTypewriter(poem.title, revealSpeed(poem.title, 60, 600), showTypewriter);
+  const body = useTypewriter(poem.content, revealSpeed(poem.content, 30, 1800), showTypewriter && title.done);
   const revealed = title.done && body.done;
 
   const titleRef = useRef<HTMLInputElement>(null);
@@ -165,6 +194,24 @@ export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onFinishedWrit
     return () => window.removeEventListener("keydown", onKey);
   }, [isEditing, revealed, skipAll, close, onPrevious, onNext, critiqueOpen]);
 
+  // Swipe left or right on a phone to turn to the next or previous poem
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const onTouchStart = (e: ReactTouchEvent) => {
+    const t = e.touches[0];
+    touchStart.current = isEditing ? null : { x: t.clientX, y: t.clientY };
+  };
+  const onTouchEnd = (e: ReactTouchEvent) => {
+    const start = touchStart.current;
+    touchStart.current = null;
+    if (!start) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - start.x;
+    const dy = t.clientY - start.y;
+    if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    if (dx < 0) onNext?.();
+    else onPrevious?.();
+  };
+
   const onDelete = () => {
     const question = poem.kind === "favorite"
       ? `Take "${poem.title.trim()}" off your favorites shelf?`
@@ -183,35 +230,38 @@ export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onFinishedWrit
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8"
+      className="fixed inset-0 z-50 flex items-center justify-center px-3 pb-3 pt-3 sm:p-8"
       onClick={(e) => {
         if (e.target === e.currentTarget) close();
       }}
       role="dialog"
       aria-modal="true"
       aria-label={poem.title.trim() || "Poem"}
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
     >
       <div
         className={cn(
-          "pointer-events-none absolute inset-0 animate-fade-in backdrop-blur-lg transition-colors duration-700",
-          lightsDown ? "bg-black/95" : "bg-black/80",
+          "pointer-events-none absolute inset-0 animate-fade-in transition-colors duration-700 sm:backdrop-blur-lg",
+          // A full-screen blur is costly on phones; a deeper shade does the same job there
+          lightsDown ? "bg-black/95" : "bg-black/90 sm:bg-black/80",
         )}
       />
 
       {onPrevious && !lightsDown && (
-        <button type="button" onClick={onPrevious} className={cn(iconButton, "absolute left-2 z-20 bg-white/10 text-amber-100 sm:left-6")} aria-label="Previous poem">
+        <button type="button" onClick={onPrevious} className={cn(iconButton, "absolute left-6 z-20 hidden bg-white/10 text-amber-100 sm:flex")} aria-label="Previous poem">
           <ChevronLeft size={18} />
         </button>
       )}
       {onNext && !lightsDown && (
-        <button type="button" onClick={onNext} className={cn(iconButton, "absolute right-2 z-20 bg-white/10 text-amber-100 sm:right-6")} aria-label="Next poem">
+        <button type="button" onClick={onNext} className={cn(iconButton, "absolute right-6 z-20 hidden bg-white/10 text-amber-100 sm:flex")} aria-label="Next poem">
           <ChevronRight size={18} />
         </button>
       )}
 
-      <div className={cn("relative z-10 flex max-h-[88vh] w-full animate-typewriter-roll flex-col", withDesk ? "max-w-5xl" : "max-w-xl")}>
+      <div className={cn("relative z-10 flex max-h-[calc(100dvh-1.5rem)] w-full animate-typewriter-roll flex-col sm:max-h-[88vh]", withDesk ? "max-w-5xl" : "max-w-xl")}>
         {/* The main actions stay visible; the rest live in the ⋯ menu */}
-        <div className="absolute -right-3 -top-4 z-20 flex max-w-[calc(100vw-2rem)] flex-wrap justify-end gap-1.5">
+        <div className="relative z-20 mb-2 flex shrink-0 justify-end gap-1.5 sm:absolute sm:-right-3 sm:-top-4 sm:mb-0 sm:max-w-[calc(100vw-2rem)] sm:flex-wrap">
           {!isEditing && (
             <button
               type="button"
@@ -219,7 +269,7 @@ export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onFinishedWrit
               aria-pressed={showRhymes}
               className={cn(pillButton, showRhymes ? "bg-amber-400 text-stone-900" : quiet)}
             >
-              {showRhymes ? "Hide rhymes" : "Rhyme scheme"}
+              {showRhymes ? "Hide rhymes" : <><span className="sm:hidden">Rhymes</span><span className="hidden sm:inline">Rhyme scheme</span></>}
             </button>
           )}
           {isEditing && (
@@ -229,7 +279,7 @@ export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onFinishedWrit
               aria-pressed={deskOpen}
               className={cn(pillButton, deskOpen ? "bg-amber-400 text-stone-900" : quiet)}
             >
-              <NotebookPen size={13} aria-hidden="true" /> {deskOpen ? "Hide desk" : "Writer's desk"}
+              <NotebookPen size={13} aria-hidden="true" /> {deskOpen ? "Hide desk" : <><span className="sm:hidden">Desk</span><span className="hidden sm:inline">Writer's desk</span></>}
             </button>
           )}
           {isAdmin && hasContent && (
@@ -255,6 +305,9 @@ export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onFinishedWrit
                     {lightsDown ? <LampDesk size={14} aria-hidden="true" /> : <Lamp size={14} aria-hidden="true" />}
                     {lightsDown ? "Lights up" : "Lights down"}
                   </DropdownMenuItem>
+                  <DropdownMenuCheckboxItem className={menuItem} checked={rhymeColorsWhileWriting} onCheckedChange={(v) => setRhymeColorsWhileWriting(v === true)}>
+                    <Highlighter size={14} aria-hidden="true" /> Light up rhymes
+                  </DropdownMenuCheckboxItem>
                   <DropdownMenuCheckboxItem className={menuItem} checked={typewriterSounds} onCheckedChange={(v) => setTypewriterSounds(v === true)}>
                     <Keyboard size={14} aria-hidden="true" /> Typewriter sounds
                   </DropdownMenuCheckboxItem>
@@ -273,16 +326,17 @@ export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onFinishedWrit
               )}
             </DropdownMenuContent>
           </DropdownMenu>
-          <button type="button" onClick={close} className={cn(pillButton, "brass-plate text-stone-900")}>
-            <X size={14} aria-hidden="true" /> Close
+          <button type="button" onClick={close} aria-label="Close" className={cn(pillButton, "brass-plate text-stone-900")}>
+            <X size={14} aria-hidden="true" /> <span className="hidden min-[400px]:inline">Close</span>
           </button>
         </div>
 
         <div className="relative flex min-h-0 flex-col overflow-hidden rounded-md bg-[hsl(30,10%,8%)] shadow-[0_30px_80px_rgba(0,0,0,0.6),inset_0_0_0_1px_rgba(255,255,255,0.05)]">
           <div className="h-[2px] bg-gradient-to-r from-transparent via-[hsl(38,55%,50%)] to-transparent" />
 
-          <div className={cn("grid min-h-0 flex-1", withDesk && "lg:grid-cols-[minmax(0,1fr)_300px]")}>
-          <div className="min-h-0 overflow-y-auto px-8 py-10 sm:px-14 sm:py-14">
+          {/* One scroll for the page on phones; side-by-side panes scroll on their own on wide screens */}
+          <div className={cn("grid min-h-0 flex-1 overflow-y-auto overscroll-contain", withDesk && "lg:grid-cols-[minmax(0,1fr)_300px] lg:overflow-hidden")}>
+          <div className={cn("px-6 py-8 sm:px-14 sm:py-14", withDesk && "lg:min-h-0 lg:overflow-y-auto")}>
             {isEditing ? (
               <>
                 {prompt && (
@@ -293,7 +347,7 @@ export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onFinishedWrit
                 <input
                   ref={titleRef}
                   value={poem.title}
-                  onChange={(e) => updatePoem(poem.id, { title: e.target.value.slice(0, 200) })}
+                  onChange={(e) => edit({ title: e.target.value.slice(0, 200) })}
                   onKeyDown={(e) => {
                     onTypeKey(e);
                     // Enter in the title moves down to the poem
@@ -328,10 +382,11 @@ export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onFinishedWrit
                   </div>
                   <TagEditor tags={poem.tags} onChange={(tags) => updatePoem(poem.id, { tags })} />
                 </div>
-                <textarea
+                <RhymeTextarea
                   ref={contentRef}
                   value={poem.content}
-                  onChange={(e) => updatePoem(poem.id, { content: e.target.value.slice(0, 20000) })}
+                  highlight={rhymeColorsWhileWriting}
+                  onChange={(e) => edit({ content: e.target.value.slice(0, 20000) })}
                   onKeyDown={onTypeKey}
                   className="min-h-[280px] w-full resize-none border-none bg-transparent font-body text-base leading-[2] tracking-[0.01em] text-[hsl(34,30%,75%)] outline-none placeholder:text-amber-100/20 sm:text-lg"
                   placeholder="Write your poem here…"
@@ -405,6 +460,16 @@ export const PoemReader = ({ poem, isAdmin, startEditing, prompt, onFinishedWrit
 
           <div className="h-[2px] bg-gradient-to-r from-transparent via-[hsl(38,55%,50%)] to-transparent" />
         </div>
+        {!isEditing && (onPrevious || onNext) && (
+          <div className="mt-2 flex shrink-0 justify-between sm:hidden">
+            <button type="button" onClick={onPrevious} disabled={!onPrevious} className={cn(pillButton, quiet, "disabled:opacity-0")} aria-label="Previous poem">
+              <ChevronLeft size={15} aria-hidden="true" /> Previous
+            </button>
+            <button type="button" onClick={onNext} disabled={!onNext} className={cn(pillButton, quiet, "disabled:opacity-0")} aria-label="Next poem">
+              Next <ChevronRight size={15} aria-hidden="true" />
+            </button>
+          </div>
+        )}
       </div>
       {isAdmin && <CritiquePanel poem={poem} open={critiqueOpen} onOpenChange={setCritiqueOpen} />}
     </div>,

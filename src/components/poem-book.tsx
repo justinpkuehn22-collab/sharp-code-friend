@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { cn } from "@/lib/utils";
 import { moodLabels, type Poem } from "@/data/poems";
 
@@ -39,7 +40,7 @@ const surname = (author: string | null): string => {
 };
 
 // One book on the shelf. Opening it is handled by the shelf, so books stay simple.
-export const PoemBook = ({ poem, index, onOpen }: PoemBookProps) => {
+const PoemBookSpine = ({ poem, index, onOpen }: PoemBookProps) => {
   const height = heights[Math.floor(seededRandom(index + 1) * heights.length)];
   const width = widths[Math.floor(seededRandom(index + 50) * widths.length)];
   const isFavorite = poem.kind === "favorite";
@@ -107,3 +108,6 @@ export const PoemBook = ({ poem, index, onOpen }: PoemBookProps) => {
     </button>
   );
 };
+
+// Books only redraw when their own poem changes
+export const PoemBook = memo(PoemBookSpine);

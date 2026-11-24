@@ -156,7 +156,7 @@ export const Index = () => {
   };
 
   return (
-    <div className="room-backdrop flex min-h-screen flex-col items-center px-4 py-6 sm:py-10">
+    <div className="room-backdrop flex min-h-screen flex-col items-center px-3 pb-24 pt-6 sm:px-4 sm:py-10">
       <p className="neon-amber mb-5 animate-neon-flicker font-['Dancing_Script',cursive] text-3xl sm:text-4xl" aria-hidden="true">
         The poetry room
       </p>

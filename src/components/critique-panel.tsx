@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
-import { Award, Lightbulb, RotateCw } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Award, BookOpen, Lightbulb, RotateCw, Shuffle } from "lucide-react";
+import { findRhymes } from "@/services/rhyme-service";
+import type { LineNote } from "@/lib/critique-coach";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Progress } from "@/components/ui/progress";
 import { critiquePoem, sameText, type Critique } from "@/lib/poem-critique";
@@ -17,16 +20,62 @@ interface CritiquePanelProps {
 
 const scoreTone = (score: number) => (score >= 7.5 ? "text-emerald-300" : score >= 5.5 ? "text-amber-300" : "text-rose-300");
 
+// Words that rhyme with a line's partner, looked up when the note is shown
+const RhymeOptions = ({ word }: { word: string }) => {
+  const rhymes = useQuery({ queryKey: ["rhymes", word], queryFn: () => findRhymes(word), staleTime: Infinity, retry: 1 });
+  if (rhymes.isLoading) return <p className="mt-1.5 text-[11px] text-amber-100/45">Finding rhymes for “{word}”…</p>;
+  if (rhymes.isError) return <p className="mt-1.5 text-[11px] text-amber-100/45">Couldn't look up rhymes right now.</p>;
+  const perfect = rhymes.data?.perfect.slice(0, 8) ?? [];
+  const near = rhymes.data?.near.slice(0, 6) ?? [];
+  if (!perfect.length && !near.length) return <p className="mt-1.5 text-[11px] text-amber-100/45">No rhymes found for “{word}”.</p>;
+  return (
+    <div className="mt-1.5 space-y-1 text-xs">
+      {perfect.length > 0 && (
+        <p className="flex flex-wrap gap-1"><span className="text-amber-100/45">Rhymes:</span>{perfect.map((w) => <span key={w} className="rounded bg-emerald-400/15 px-1.5 text-emerald-100">{w}</span>)}</p>
+      )}
+      {near.length > 0 && (
+        <p className="flex flex-wrap gap-1"><span className="text-amber-100/45">Near:</span>{near.map((w) => <span key={w} className="rounded border border-dashed border-sky-300/40 px-1.5 text-sky-100">{w}</span>)}</p>
+      )}
+    </div>
+  );
+};
+
+const LineNoteCard = ({ note }: { note: LineNote }) => (
+  <li className="rounded-md border border-amber-100/10 bg-white/[0.03] p-3">
+    <p className="flex gap-2 font-body text-sm italic text-amber-100/85">
+      <span className="shrink-0 not-italic tabular-nums text-amber-400/60">{note.lineNumber}</span>
+      <span className="min-w-0 break-words">{note.line.trim()}</span>
+    </p>
+    <p className="mt-1.5 text-sm font-semibold text-amber-50">{note.title}</p>
+    <p className="mt-0.5 text-xs leading-relaxed text-amber-100/70">{note.detail}</p>
+    {note.ideas.length > 0 && (
+      <ul className="mt-1.5 space-y-1">
+        {note.ideas.map((idea) => (
+          <li key={idea} className="border-l-2 border-amber-400/40 pl-2 text-xs text-amber-100/90">
+            {note.kind === "filler" ? <span className="font-body text-sm italic">{idea}</span> : idea}
+          </li>
+        ))}
+      </ul>
+    )}
+    {note.rhymeWith && <RhymeOptions word={note.rhymeWith} />}
+  </li>
+);
+
 const timeLabel = (date: Date) => date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
 // Admin only: a workshop-style read of one poem, refreshed on demand
 export const CritiquePanel = ({ poem, open, onOpenChange }: CritiquePanelProps) => {
-  const [reading, setReading] = useState<{ critique: Critique; at: Date } | null>(null);
-  const read = () => setReading({ critique: critiquePoem(poem.title, poem.content), at: new Date() });
+  const [reading, setReading] = useState<{ critique: Critique; at: Date; variation: number } | null>(null);
+  const read = () => setReading({ critique: critiquePoem(poem.title, poem.content), at: new Date(), variation: 0 });
+  // Same poem, a different set of famous examples and line notes
+  const otherIdeas = () => {
+    const variation = (reading?.variation ?? 0) + 1;
+    setReading({ critique: critiquePoem(poem.title, poem.content, variation), at: new Date(), variation });
+  };
 
   // Read the poem when the panel opens; after that, only when Refresh is pressed
   useEffect(() => {
-    if (open && !reading) setReading({ critique: critiquePoem(poem.title, poem.content), at: new Date() });
+    if (open && !reading) setReading({ critique: critiquePoem(poem.title, poem.content), at: new Date(), variation: 0 });
     // Only on opening: later edits wait for Refresh
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -66,6 +115,13 @@ export const CritiquePanel = ({ poem, open, onOpenChange }: CritiquePanelProps) 
                   )}
                 >
                   <RotateCw size={13} aria-hidden="true" /> Refresh
+                </button>
+                <button
+                  type="button"
+                  onClick={otherIdeas}
+                  className="mt-1.5 flex items-center gap-1.5 rounded-full border border-amber-300/25 px-3 py-1.5 text-xs text-amber-100/80 transition hover:text-amber-50"
+                >
+                  <Shuffle size={13} aria-hidden="true" /> Other ideas
                 </button>
                 <p className="mt-1.5 text-[11px] text-amber-100/50" role="status">
                   {changed ? "You've changed the poem since this read." : `Read at ${reading ? timeLabel(reading.at) : ""}`}
@@ -134,6 +190,18 @@ export const CritiquePanel = ({ poem, open, onOpenChange }: CritiquePanelProps) 
               </ul>
             </section>
 
+            {/* Line by line */}
+            {critique.lineNotes.length > 0 && (
+              <section>
+                <h3 className="mb-2 text-[11px] uppercase tracking-[0.2em] text-amber-400/80">Line by line</h3>
+                <ol className="space-y-3">
+                  {critique.lineNotes.map((n) => (
+                    <LineNoteCard key={`${n.lineNumber}-${n.kind}`} note={n} />
+                  ))}
+                </ol>
+              </section>
+            )}
+
             {/* Room to grow */}
             {critique.tips.length > 0 && (
               <section>
@@ -146,6 +214,22 @@ export const CritiquePanel = ({ poem, open, onOpenChange }: CritiquePanelProps) 
                       </p>
                       {t.quote && <p className="mt-1.5 border-l-2 border-amber-400/40 pl-2 font-body text-sm italic text-amber-100/80">{t.quote}</p>}
                       <p className="mt-1.5 text-xs leading-relaxed text-amber-100/70">{t.detail}</p>
+                      {t.master && (
+                        <figure className="mt-3 rounded border border-amber-300/15 bg-black/25 p-2.5">
+                          <figcaption className="mb-1.5 flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] text-amber-400/75">
+                            <BookOpen size={11} aria-hidden="true" /> Learn from the masters
+                          </figcaption>
+                          <blockquote className="whitespace-pre-line font-body text-sm italic leading-relaxed text-amber-50/90">{t.master.lines}</blockquote>
+                          <p className="mt-1 text-[11px] text-amber-100/55">
+                            {t.master.poet}, <span className="italic">{t.master.poem}</span> ({t.master.year})
+                          </p>
+                          <p className="mt-2 text-xs leading-relaxed text-amber-100/75">{t.master.lesson}</p>
+                          <p className="mt-2 text-xs leading-relaxed text-amber-100/90">
+                            <span className="font-semibold text-amber-300">Try it: </span>
+                            {t.master.tryIt}
+                          </p>
+                        </figure>
+                      )}
                     </li>
                   ))}
                 </ol>

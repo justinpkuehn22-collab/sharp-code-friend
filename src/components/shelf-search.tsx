@@ -20,7 +20,7 @@ const chip = (active: boolean) =>
   );
 
 export const ShelfSearch = ({ filter, onChange, moods, tags, shown, total, onRandom }: ShelfSearchProps) => (
-  <section aria-label="Find a poem" className="mx-auto w-full max-w-xl space-y-3 px-6 pt-2">
+  <section aria-label="Find a poem" className="mx-auto w-full max-w-xl space-y-3 px-4 pt-2 sm:px-6">
     <div className="flex gap-2">
       <label className="flex flex-1 items-center gap-2 rounded-full border border-amber-100/15 bg-black/25 px-4 py-2 focus-within:ring-2 focus-within:ring-amber-400/60">
         <Search size={14} className="text-amber-100/50" aria-hidden="true" />
@@ -29,7 +29,7 @@ export const ShelfSearch = ({ filter, onChange, moods, tags, shown, total, onRan
           type="search"
           value={filter.query}
           onChange={(e) => onChange({ ...filter, query: e.target.value })}
-          placeholder="Search a word, a line or a title"
+          placeholder="Search poems"
           className="w-full bg-transparent text-sm text-amber-50 outline-none placeholder:text-amber-100/35"
         />
       </label>

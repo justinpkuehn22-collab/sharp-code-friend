@@ -27,19 +27,21 @@ export const useTypewriter = (text: string, speed = 30, active = false) => {
     setDisplayed("");
     setDone(false);
     if (!active) return;
+    // Fast reveals type a few letters per tick, so a phone only redraws every ~30ms
+    const step = Math.max(1, Math.round(30 / speed));
     let i = 0;
     const tick = () => {
-      i++;
+      i = Math.min(text.length, i + step);
       setDisplayed(text.slice(0, i));
       if (i >= text.length) {
         setDone(true);
         return;
       }
-      const char = text[i - 1];
-      let delay = speed;
-      if (char === "\n") delay = speed * 6;
-      else if (char === "." || char === "—" || char === "…") delay = speed * 4;
-      else if (char === ",") delay = speed * 2.5;
+      const chunk = text.slice(i - step, i);
+      let delay = speed * step;
+      if (chunk.includes("\n")) delay += speed * 6;
+      else if (/[.—…]/.test(chunk)) delay += speed * 4;
+      else if (chunk.includes(",")) delay += speed * 2.5;
       timerRef.current = window.setTimeout(tick, delay);
     };
     timerRef.current = window.setTimeout(tick, speed);
