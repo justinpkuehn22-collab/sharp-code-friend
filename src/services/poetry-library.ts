@@ -68,3 +68,18 @@ export const poemText = (poem: LibraryPoem): string =>
     .join("\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+
+// Any public-domain poem PoetryDB has, by title and poet, for saving a passage's whole poem.
+// Titles are matched on their longest run of plain words, since PoetryDB's quotes and
+// punctuation don't always match ours.
+export const fetchWholePoem = async (title: string, poet: string): Promise<LibraryPoem | null> => {
+  const words = title.split(/[^A-Za-z0-9' ]+/).map((s) => s.trim()).sort((a, b) => b.length - a.length)[0] ?? "";
+  const surname = poet.replace(/\s*\(.*\)/, "").trim().split(/\s+/).pop() ?? poet;
+  if (words.length < 3) return null;
+  const matches = (await get<LibraryPoem>(`/author,title/${segment(surname)};${segment(words)}`)).map((p) => ({ ...p, linecount: Number(p.linecount ?? 0) }));
+  if (matches.length === 0) return null;
+  // Only the same poem by the same poet will do; a near miss would put the wrong words on the shelf
+  const target = normal(title);
+  const byPoet = matches.filter((p) => normal(p.author).includes(normal(surname)));
+  return byPoet.find((p) => normal(p.title) === target) ?? byPoet.find((p) => normal(p.title).startsWith(target)) ?? null;
+};

@@ -3,6 +3,8 @@ import { createPortal } from "react-dom";
 import { ChevronLeft, ChevronRight, ClipboardCheck, Copy, Highlighter, Keyboard, Lamp, LampDesk, MoreHorizontal, NotebookPen, Pencil, Trash2, X } from "lucide-react";
 import { RhymeTextarea } from "@/components/rhyme-textarea";
 import { RhymedPoem } from "@/components/rhymed-poem";
+import { WorldPoemView } from "@/components/world-poem-view";
+import { worldPoemForShelfId } from "@/lib/world-shelf";
 import { CritiquePanel } from "@/components/critique-panel";
 import {
   DropdownMenu,
@@ -155,10 +157,17 @@ export const PoemReader = ({ poem: stored, isAdmin, startEditing, prompt, onFini
     onClose();
   }, [finishWriting, onClose]);
   const hasContent = poem.content.trim() !== "";
+  // A poem from the world library opens in its own language as well as English
+  const world = isFavorite ? worldPoemForShelfId(poem.id) : null;
   const showTypewriter = !isEditing && hasContent;
 
   const title = useTypewriter(poem.title, revealSpeed(poem.title, 60, 600), showTypewriter);
   const body = useTypewriter(poem.content, revealSpeed(poem.content, 30, 1800), showTypewriter && title.done);
+  // World poems skip the typed reveal of the body; the two languages appear together
+  useEffect(() => {
+    if (world && title.done) body.skip();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [world, title.done]);
   const revealed = title.done && body.done;
 
   const titleRef = useRef<HTMLInputElement>(null);
@@ -259,7 +268,7 @@ export const PoemReader = ({ poem: stored, isAdmin, startEditing, prompt, onFini
         </button>
       )}
 
-      <div className={cn("relative z-10 flex max-h-[calc(100dvh-1.5rem)] w-full animate-typewriter-roll flex-col sm:max-h-[88vh]", withDesk ? "max-w-5xl" : "max-w-xl")}>
+      <div className={cn("relative z-10 flex max-h-[calc(100dvh-1.5rem)] w-full animate-typewriter-roll flex-col sm:max-h-[88vh]", withDesk ? "max-w-5xl" : world && !isEditing ? "max-w-3xl" : "max-w-xl")}>
         {/* The main actions stay visible; the rest live in the ⋯ menu */}
         <div className="relative z-20 mb-2 flex shrink-0 justify-end gap-1.5 sm:absolute sm:-right-3 sm:-top-4 sm:mb-0 sm:max-w-[calc(100vw-2rem)] sm:flex-wrap">
           {!isEditing && (
@@ -436,7 +445,22 @@ export const PoemReader = ({ poem: stored, isAdmin, startEditing, prompt, onFini
                   </div>
                 )}
 
-                {title.done && (
+                {title.done && world && (
+                  <div className="-mt-3 mb-5 animate-fade-in">
+                    <p lang={world.lang} dir={world.rtl ? "rtl" : undefined} className={cn("text-lg text-amber-100/75", world.rtl && "text-left")}>
+                      {world.originalTitle}
+                    </p>
+                    <p className="text-xs text-amber-100/40">
+                      {world.poet} · {world.language} · {world.place} · {world.dates}
+                    </p>
+                  </div>
+                )}
+
+                {title.done && world && !showRhymes ? (
+                  <div className="animate-fade-in text-base sm:text-lg">
+                    <WorldPoemView poem={world} showHeader={false} />
+                  </div>
+                ) : title.done && (
                   body.done && showRhymes ? (
                     <RhymedPoem text={poem.content} />
                   ) : (

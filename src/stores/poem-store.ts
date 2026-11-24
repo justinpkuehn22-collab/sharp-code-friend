@@ -15,7 +15,7 @@ interface PoemStore {
   discardIfEmpty: (id: string) => void;
   importPoems: (items: Array<Pick<Poem, "title" | "content">>) => number;
   // Classics from the library that the owner favorites; guests see them on the shelf
-  addFavorite: (item: { title: string; author: string; content: string }) => string;
+  addFavorite: (item: { title: string; author: string; content: string; tags?: string[] }) => string;
 }
 
 const newId = (): string =>
@@ -56,7 +56,7 @@ export const usePoemStore = create<PoemStore>()((set, get) => ({
     const id = favoriteId(item.title, item.author);
     if (get().poems.some((p) => p.id === id)) return id;
     const stamp = nowIso();
-    const favorite: Poem = { id, title: item.title, content: item.content, tags: [], mood: null, createdAt: stamp, updatedAt: stamp, kind: "favorite", author: item.author };
+    const favorite: Poem = { id, title: item.title, content: item.content, tags: item.tags ?? [], mood: null, createdAt: stamp, updatedAt: stamp, kind: "favorite", author: item.author };
     set((state) => ({ poems: [...state.poems, favorite], revision: state.revision + 1 }));
     return id;
   },
