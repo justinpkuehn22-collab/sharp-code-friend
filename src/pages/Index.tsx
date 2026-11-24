@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchBackendFeatures } from "@/services/shelf-service";
 import { Check, CloudOff, Eye, Loader2, Plus } from "lucide-react";
@@ -75,6 +75,12 @@ export const Index = () => {
   // Lets the owner see the shelf exactly as guests with the reader's code do
   const [viewAsGuest, setViewAsGuest] = useState(false);
   const isAdmin = isOwner && !viewAsGuest;
+  // The room's colours follow "View as guest" too
+  const setGuestPreview = useLoungeStore((s) => s.setGuestPreview);
+  useEffect(() => {
+    setGuestPreview(viewAsGuest);
+    return () => setGuestPreview(false);
+  }, [viewAsGuest, setGuestPreview]);
   const saveStatus = useShelfAutosave(token, isOwner);
   // The library only appears once the backend can store favorites properly
   const features = useQuery({ queryKey: ["backend-features"], queryFn: fetchBackendFeatures, enabled: isOwner, staleTime: 5 * 60_000 });

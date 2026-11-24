@@ -12,13 +12,17 @@ export type RoomTheme = (typeof roomThemes)[number]["id"];
 interface LoungeStore {
   typewriterSounds: boolean;
   musicVolume: number;
-  roomTheme: RoomTheme;
+  // A guest's own pick on this device; null means the house default
+  roomTheme: RoomTheme | null;
+  // The owner is looking at the room as a guest would (not remembered)
+  guestPreview: boolean;
   showRhymes: boolean;
   // Colour rhyming line endings in the editor while writing
   rhymeColorsWhileWriting: boolean;
   setTypewriterSounds: (on: boolean) => void;
   setMusicVolume: (volume: number) => void;
-  setRoomTheme: (theme: RoomTheme) => void;
+  setRoomTheme: (theme: RoomTheme | null) => void;
+  setGuestPreview: (on: boolean) => void;
   setShowRhymes: (on: boolean) => void;
   setRhymeColorsWhileWriting: (on: boolean) => void;
 }
@@ -29,15 +33,26 @@ export const useLoungeStore = create<LoungeStore>()(
     (set) => ({
       typewriterSounds: true,
       musicVolume: 0.6,
-      roomTheme: "speakeasy",
+      roomTheme: null,
+      guestPreview: false,
       showRhymes: false,
       rhymeColorsWhileWriting: true,
       setTypewriterSounds: (typewriterSounds) => set({ typewriterSounds }),
       setMusicVolume: (musicVolume) => set({ musicVolume: Math.min(1, Math.max(0, musicVolume)) }),
       setRoomTheme: (roomTheme) => set({ roomTheme }),
+      setGuestPreview: (guestPreview) => set({ guestPreview }),
       setShowRhymes: (showRhymes) => set({ showRhymes }),
       setRhymeColorsWhileWriting: (rhymeColorsWhileWriting) => set({ rhymeColorsWhileWriting }),
     }),
-    { name: "poetry-shelf-lounge" },
+    {
+      name: "poetry-shelf-lounge",
+      version: 2,
+      // Earlier versions stored "speakeasy" for everyone who never chose; start them on the new default
+      migrate: (state, version) => {
+        const old = (state ?? {}) as Record<string, unknown>;
+        return (version < 2 ? { ...old, roomTheme: null } : old) as unknown as LoungeStore;
+      },
+      partialize: ({ guestPreview: _preview, ...rest }) => rest,
+    },
   ),
 );

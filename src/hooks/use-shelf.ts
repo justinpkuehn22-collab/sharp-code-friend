@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchShelf, saveShelf, SignedOutError } from "@/services/shelf-service";
 import { usePoemStore } from "@/stores/poem-store";
 import { useSessionStore } from "@/stores/session-store";
-import { isWritten } from "@/data/poems";
 
 export type SaveStatus = "idle" | "saving" | "saved" | "error";
 
@@ -43,7 +42,7 @@ export const useShelfAutosave = (token: string | null, enabled: boolean): SaveSt
     const save = () => {
       pending.current = false;
       setStatus("saving");
-      const poems = usePoemStore.getState().poems.filter(isWritten);
+      const poems = usePoemStore.getState().shelfPayload();
       saveShelf(token, poems)
         .then(() => setStatus(pending.current ? "saving" : "saved"))
         .catch((e: unknown) => {
@@ -62,7 +61,7 @@ export const useShelfAutosave = (token: string | null, enabled: boolean): SaveSt
 
     const flush = () => {
       if (!pending.current) return;
-      const poems = usePoemStore.getState().poems.filter(isWritten);
+      const poems = usePoemStore.getState().shelfPayload();
       pending.current = false;
       saveShelf(token, poems, { keepalive: true }).catch(() => undefined);
     };

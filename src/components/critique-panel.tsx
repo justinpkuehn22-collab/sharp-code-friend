@@ -4,6 +4,7 @@ import { Award, BookOpen, Lightbulb, RotateCw, Shuffle } from "lucide-react";
 import { findRhymes } from "@/services/rhyme-service";
 import type { LineNote } from "@/lib/critique-coach";
 import { SaveMasterButton } from "@/components/save-master-button";
+import { KindredPoems } from "@/components/kindred-poems";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Progress } from "@/components/ui/progress";
 import { critiquePoem, sameText, type Critique } from "@/lib/poem-critique";
@@ -124,6 +125,13 @@ export const CritiquePanel = ({ poem, open, onOpenChange }: CritiquePanelProps) 
                 >
                   <Shuffle size={13} aria-hidden="true" /> Other ideas
                 </button>
+                <button
+                  type="button"
+                  onClick={() => document.getElementById("kindred-poems")?.scrollIntoView({ behavior: "smooth" })}
+                  className="mt-1.5 text-[11px] text-amber-300 hover:text-amber-200"
+                >
+                  Kindred poems ↓
+                </button>
                 <p className="mt-1.5 text-[11px] text-amber-100/50" role="status">
                   {changed ? "You've changed the poem since this read." : `Read at ${reading ? timeLabel(reading.at) : ""}`}
                 </p>
@@ -239,6 +247,8 @@ export const CritiquePanel = ({ poem, open, onOpenChange }: CritiquePanelProps) 
                 </ol>
               </section>
             )}
+
+            <KindredPoems poem={poem} />
 
             <p className="border-t border-amber-200/10 pt-3 text-[10px] leading-snug text-amber-100/40">
               Scores come from patterns in the words, so treat them as a guide for revision, not a verdict on the poem.
