@@ -116,6 +116,9 @@ export const PoemReader = ({ poem: stored, isAdmin, startEditing, prompt, onFini
   // Whatever is still waiting is saved when the poem closes
   useEffect(() => flush, [flush]);
   const poem: Poem = isEditing ? { ...stored, title: draft.title, content: draft.content } : stored;
+  // The poem as of the last finished line: what the rhyme tools read, so they don't
+  // change (and shift the page) on every key
+  const [settledContent, setSettledContent] = useState(stored.content);
   // Writer tools: the side desk, and a dimmer room for focus
   const [deskOpen, setDeskOpen] = useState(() => typeof window === "undefined" || window.innerWidth >= 1024);
   const [lightsDown, setLightsDown] = useState(false);
@@ -395,6 +398,7 @@ export const PoemReader = ({ poem: stored, isAdmin, startEditing, prompt, onFini
                   ref={contentRef}
                   value={poem.content}
                   highlight={rhymeColorsWhileWriting}
+                  onSettle={setSettledContent}
                   onChange={(e) => edit({ content: e.target.value.slice(0, 20000) })}
                   onKeyDown={onTypeKey}
                   className="min-h-[280px] w-full resize-none border-none bg-transparent font-body text-base leading-[2] tracking-[0.01em] text-[hsl(34,30%,75%)] outline-none placeholder:text-amber-100/20 sm:text-lg"
@@ -479,7 +483,7 @@ export const PoemReader = ({ poem: stored, isAdmin, startEditing, prompt, onFini
               </div>
             )}
           </div>
-          {withDesk && <WritersDesk content={poem.content} onInsertWord={insertWord} />}
+          {withDesk && <WritersDesk content={settledContent} onInsertWord={insertWord} />}
           </div>
 
           <div className="h-[2px] bg-gradient-to-r from-transparent via-[hsl(38,55%,50%)] to-transparent" />
