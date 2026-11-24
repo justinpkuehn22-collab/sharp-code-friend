@@ -14,6 +14,7 @@ import {
 import { analyzeRhymes, rhymeKindCounts, rhymeSchemeText } from "@/lib/rhyme";
 import { rhymeKindLabels, type RhymeKind } from "@/lib/rhyme-sounds";
 import { lineSyllables } from "@/lib/syllables";
+import { lineNotes, masterLesson, seedOf, type LineNote, type MasterLesson } from "@/lib/critique-coach";
 
 export type ElementId = "imagery" | "figurative" | "symbolism" | "sound" | "rhythm" | "diction" | "structure" | "voice";
 
@@ -36,6 +37,8 @@ export interface Tip {
   title: string;
   detail: string;
   quote?: string;
+  // A famous passage that shows the move, with an exercise on the writer's own line
+  master?: MasterLesson | null;
 }
 
 export interface Critique {
@@ -45,6 +48,8 @@ export interface Critique {
   elements: ElementScore[];
   badges: Badge[];
   tips: Tip[];
+  // Specific lines worth another look, with options to try
+  lineNotes: LineNote[];
   analyzedText: string;
 }
 
@@ -420,11 +425,25 @@ const scoreVoice = (text: string, lines: string[], title: string) => {
 
 const senseNames: Record<Sense, string> = { sight: "sight", sound: "sound", touch: "touch", smell: "smell", taste: "taste" };
 
-export const critiquePoem = (title: string, text: string): Critique => {
+// Different wordings for each tip, so poems don't all hear the same sentence
+const tipTitles: Record<ElementId, string[]> = {
+  imagery: ["Show it with something a camera could catch", "Give the reader something to see", "Put an object in the room"],
+  figurative: ["Turn a stated feeling into a comparison", "Say what the feeling is like", "Let a metaphor carry the weight"],
+  symbolism: ["Let one image carry the poem", "Build a symbol that comes back changed", "Give the poem an object to orbit"],
+  sound: ["Add music inside the lines", "Let the words echo each other", "Tune the line endings"],
+  rhythm: ["Even out the breath of the lines", "Shape the pace line by line", "Use line length as a beat"],
+  diction: ["Swap abstractions for specifics", "Choose the word nobody else would", "Make the language yours"],
+  // Structure titles depend on the poem's ending, so they stay as written
+  structure: [],
+  voice: ["Add one detail only you would know", "Sound like a person in a room", "Name the real thing"],
+};
+
+// variation > 0 asks for a different set of examples and line notes for the same poem
+export const critiquePoem = (title: string, text: string, variation = 0): Critique => {
   const lines = contentLines(text);
   const stanzas = stanzasOf(text);
   if (lines.length === 0) {
-    return { overall: 0, rhymeBlurb: "Nothing written yet.", scheme: "", elements: [], badges: [], tips: [], analyzedText: text };
+    return { overall: 0, rhymeBlurb: "Nothing written yet.", scheme: "", elements: [], badges: [], tips: [], lineNotes: [], analyzedText: text };
   }
 
   const imagery = scoreImagery(text, lines);
@@ -540,6 +559,16 @@ export const critiquePoem = (title: string, text: string): Critique => {
     }
   }
 
+  // Vary the wording and pair each tip with a passage from a famous poem
+  const seed = seedOf(`${title}\n${text}`) + variation * 104729;
+  tips.forEach((tip, n) => {
+    const titles = tipTitles[tip.element];
+    // Keep a title that depends on the poem; otherwise rotate through the wordings
+    if (titles.length && titles.includes(tip.title)) tip.title = titles[(seed + n) % titles.length];
+    const line = tip.quote ?? lines[(seed + n * 7) % lines.length];
+    tip.master = masterLesson(tip.element, line, seed + n * 31);
+  });
+
   return {
     overall,
     rhymeBlurb: describeRhyme(text),
@@ -547,6 +576,7 @@ export const critiquePoem = (title: string, text: string): Critique => {
     elements,
     badges,
     tips,
+    lineNotes: lineNotes(text, variation),
     analyzedText: text,
   };
 };

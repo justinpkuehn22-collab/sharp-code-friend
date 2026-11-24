@@ -1,12 +1,10 @@
 import { useMemo } from "react";
-import { analyzeRhymes } from "@/lib/rhyme";
+import { analyzeRhymes, splitEnding } from "@/lib/rhyme";
 import { lineSyllables } from "@/lib/syllables";
 import { rhymeKindLabels } from "@/lib/rhyme-sounds";
 import { colorIndexForLetter, rhymeBadgeColors, rhymeBadgeStyle, rhymeTextColors } from "@/lib/rhyme-colors";
 import { RhymeLegend } from "@/components/rhyme-legend";
 import { cn } from "@/lib/utils";
-
-const endingWords = new Set(["it", "em", "a", "an", "the", "of", "to"]);
 
 // The poem with its rhyme scheme shown: rhyming endings share a colour and a letter,
 // the badge shows what kind of rhyme it is, and each line shows its syllable count
@@ -19,16 +17,7 @@ export const RhymedPoem = ({ text }: { text: string }) => {
       {lines.map((line, i) => {
         const r = rhymes[i];
         if (!r.letter) return <div key={i} className="h-[2.2em]" />;
-        // Colour the last word, or the last two when it ends on a small word ("hold it")
-        const match = /^(.*?)((?:\S+\s+)?\S+)(\s*)$/.exec(line);
-        let head = line;
-        let end = "";
-        if (match) {
-          const two = match[2].trim().split(/\s+/);
-          const lastIsSmall = two.length === 2 && endingWords.has(two[1].toLowerCase().replace(/[^a-z]/g, ""));
-          head = lastIsSmall ? match[1] : match[1] + (two.length === 2 ? `${two[0]} ` : "");
-          end = lastIsSmall ? match[2] : two[two.length - 1];
-        }
+        const { head, end, tail } = splitEnding(line);
         const colour = colorIndexForLetter(r.letter);
         return (
           <div key={i} className="flex items-baseline gap-3">
@@ -37,6 +26,7 @@ export const RhymedPoem = ({ text }: { text: string }) => {
               <span className={cn(r.kind && cn("font-semibold", rhymeTextColors[colour]), r.kind === "slant" && "underline decoration-dashed underline-offset-4")}>
                 {end}
               </span>
+              {tail}
             </span>
             <span className="flex shrink-0 items-center gap-1.5 text-[11px] leading-none">
               <span className="w-6 text-right tabular-nums text-amber-100/35">{lineSyllables(line)}</span>

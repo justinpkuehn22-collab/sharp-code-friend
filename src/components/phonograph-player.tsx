@@ -43,9 +43,9 @@ export const PhonographPlayer = () => {
   };
 
   return (
-    <div className="fixed bottom-4 right-4 z-40 flex items-end gap-2">
+    <div className="fixed bottom-3 right-3 z-40 flex items-end gap-2 sm:bottom-4 sm:right-4">
       {open && (
-        <div className="mb-1 w-64 animate-fade-in rounded-md border border-amber-300/25 bg-stone-950/95 p-3 text-amber-100 shadow-xl backdrop-blur">
+        <div className="mb-1 w-[min(16rem,calc(100vw-6rem))] animate-fade-in rounded-md border border-amber-300/25 bg-stone-950/95 p-3 text-amber-100 shadow-xl backdrop-blur">
           <p className="text-[10px] uppercase tracking-[0.2em] text-amber-400/80">{playing ? "Now playing" : "On the turntable"}</p>
           <p className="font-display text-sm italic text-amber-50">{tune.title}</p>
 
@@ -102,7 +102,7 @@ export const PhonographPlayer = () => {
         <button
           type="button"
           onClick={toggle}
-          className="group relative h-20 w-20 rounded-md border border-amber-300/30 bg-[linear-gradient(160deg,hsl(22_34%_22%),hsl(18_30%_10%))] p-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.7)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+          className="group relative h-14 w-14 rounded-md sm:h-20 sm:w-20 border border-amber-300/30 bg-[linear-gradient(160deg,hsl(22_34%_22%),hsl(18_30%_10%))] p-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.7)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
           aria-label={playing ? "Stop the music" : "Play some music"}
           aria-pressed={playing}
         >
@@ -111,7 +111,7 @@ export const PhonographPlayer = () => {
           </div>
           <div
             className={cn(
-              "brass-plate absolute right-1 top-1 h-12 w-1 origin-top rounded-full transition-transform duration-700",
+              "brass-plate absolute right-1 top-1 h-9 w-1 origin-top sm:h-12 rounded-full transition-transform duration-700",
               playing ? "rotate-[28deg]" : "rotate-[4deg]",
             )}
           />

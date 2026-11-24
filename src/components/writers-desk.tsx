@@ -1,6 +1,7 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { useDeferredValue, useMemo, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search } from "lucide-react";
+import { BookOpen, Search, Shuffle } from "lucide-react";
+import { critiquePoem, elementLabels } from "@/lib/poem-critique";
 import { findRhymes } from "@/services/rhyme-service";
 import { analyzeRhymes, lastWord, rhymeKindCounts, rhymeSchemeText } from "@/lib/rhyme";
 import { rhymeKindLabels } from "@/lib/rhyme-sounds";
@@ -17,8 +18,20 @@ interface WritersDeskProps {
 }
 
 // A side panel for the poet: live counts, the rhyme scheme as it forms, and a rhyme finder
-export const WritersDesk = ({ content, onInsertWord }: WritersDeskProps) => {
+export const WritersDesk = ({ content: live, onInsertWord }: WritersDeskProps) => {
+  // The desk catches up between keystrokes rather than on every one
+  const content = useDeferredValue(live);
   const lines = content.split("\n");
+  // A famous passage that shows what this draft could use most right now
+  const [variation, setVariation] = useState(0);
+  const lesson = useMemo(() => {
+    if (lines.filter((l) => l.trim()).length < 2) return null;
+    const tips = critiquePoem("", content, variation).tips;
+    const tip = tips[variation % Math.max(1, tips.length)];
+    return tip?.master ? { element: tip.element, master: tip.master } : null;
+    // lines comes from content
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [content, variation]);
   const lineRhymes = useMemo(() => analyzeRhymes(content), [content]);
   const counts = useMemo(() => rhymeKindCounts(content), [content]);
   const scheme = useMemo(() => rhymeSchemeText(content), [content]);
@@ -44,7 +57,7 @@ export const WritersDesk = ({ content, onInsertWord }: WritersDeskProps) => {
   };
 
   return (
-    <aside aria-label="Writer's desk" className="flex min-h-0 flex-col gap-4 overflow-y-auto border-amber-200/10 px-6 py-8 text-amber-100 lg:border-l">
+    <aside aria-label="Writer's desk" className="flex flex-col gap-4 border-t border-amber-200/10 lg:min-h-0 px-6 py-8 text-amber-100 lg:overflow-y-auto lg:border-l lg:border-t-0">
       <section>
         <h3 className="mb-2 text-[11px] uppercase tracking-[0.2em] text-amber-400/80">At a glance</h3>
         <dl className="grid grid-cols-3 gap-2 text-center">
@@ -144,6 +157,29 @@ export const WritersDesk = ({ content, onInsertWord }: WritersDeskProps) => {
           <p className="text-xs text-amber-100/45">No rhymes found for "{target}". Try a different word.</p>
         )}
       </section>
+      {lesson && (
+        // Right under the poem on phones, at the bottom of the side desk on wide screens
+        <section className="-order-1 lg:order-none">
+          <div className="mb-2 flex items-center justify-between">
+            <h3 className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.2em] text-amber-400/80">
+              <BookOpen size={11} aria-hidden="true" /> Learn from the masters
+            </h3>
+            <button type="button" onClick={() => setVariation((v) => v + 1)} className="flex items-center gap-1 text-[11px] text-amber-100/50 hover:text-amber-50" aria-label="Show another example">
+              <Shuffle size={11} aria-hidden="true" /> Another
+            </button>
+          </div>
+          <p className="mb-1.5 text-[11px] text-amber-100/50">Your draft could use more: {elementLabels[lesson.element].toLowerCase()}</p>
+          <blockquote className="whitespace-pre-line border-l-2 border-amber-400/40 pl-2 font-body text-sm italic leading-relaxed text-amber-50/90">{lesson.master.lines}</blockquote>
+          <p className="mt-1 text-[10px] text-amber-100/45">
+            {lesson.master.poet}, <span className="italic">{lesson.master.poem}</span> ({lesson.master.year})
+          </p>
+          <p className="mt-2 text-xs leading-relaxed text-amber-100/70">{lesson.master.lesson}</p>
+          <p className="mt-1.5 text-xs leading-relaxed text-amber-100/90">
+            <span className="font-semibold text-amber-300">Try it: </span>
+            {lesson.master.tryIt}
+          </p>
+        </section>
+      )}
     </aside>
   );
 };

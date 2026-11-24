@@ -22,6 +22,17 @@ export const rhymeBadgeColors = [
   "bg-orange-400/20 text-orange-200",
   "bg-lime-400/20 text-lime-200",
 ];
+// Soft highlights behind rhyming endings while writing, one per rhyme sound
+export const rhymeMarkColors = [
+  "bg-rose-400/25 decoration-rose-300",
+  "bg-emerald-400/25 decoration-emerald-300",
+  "bg-sky-400/25 decoration-sky-300",
+  "bg-amber-400/25 decoration-amber-300",
+  "bg-violet-400/25 decoration-violet-300",
+  "bg-teal-400/25 decoration-teal-300",
+  "bg-orange-400/25 decoration-orange-300",
+  "bg-lime-400/25 decoration-lime-300",
+];
 export const colorIndexForLetter = (letter: string): number => (letter.charCodeAt(0) - 65) % rhymeTextColors.length;
 
 // The badge style for each kind of rhyme: solid for perfect, outlined for the looser kinds
