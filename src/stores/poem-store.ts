@@ -9,6 +9,10 @@ interface PoemStore {
   poems: Poem[];
   // The owner's saved room settings, kept apart from the poems
   roomSettings: RoomSettings | null;
+  // Poems deleted on this device since the shelf loaded, so saving never brings them back
+  deletedIds: Set<string>;
+  // Takes in poems and edits made on another device, without counting as a new edit here
+  absorbServer: (poems: Poem[]) => void;
   saveRoomTheme: (theme: RoomTheme) => void;
   // What gets saved: the poems plus the settings record
   shelfPayload: () => Poem[];
@@ -37,10 +41,18 @@ export const favoriteId = (title: string, author: string): string =>
 export const usePoemStore = create<PoemStore>()((set, get) => ({
   poems: [],
   roomSettings: null,
+  deletedIds: new Set<string>(),
   revision: 0,
   setPoems: (poems) => {
     const record = poems.find(isSettingsRecord);
     set({ poems: poems.filter((p) => !isSettingsRecord(p) && isWritten(p)), roomSettings: record ? readSettings(record) : null });
+  },
+  absorbServer: (incoming) => {
+    const record = incoming.find(isSettingsRecord);
+    set({
+      poems: incoming.filter((p) => !isSettingsRecord(p) && isWritten(p)),
+      ...(record && !get().roomSettings ? { roomSettings: readSettings(record) } : {}),
+    });
   },
   saveRoomTheme: (theme) => set((state) => ({ roomSettings: { ...(state.roomSettings ?? {}), theme }, revision: state.revision + 1 })),
   shelfPayload: () => {
@@ -62,11 +74,11 @@ export const usePoemStore = create<PoemStore>()((set, get) => ({
       revision: state.revision + 1,
     })),
   deletePoem: (id) =>
-    set((state) => ({ poems: state.poems.filter((p) => p.id !== id), revision: state.revision + 1 })),
+    set((state) => ({ poems: state.poems.filter((p) => p.id !== id), deletedIds: new Set(state.deletedIds).add(id), revision: state.revision + 1 })),
   discardIfEmpty: (id) => {
     const poem = get().poems.find((p) => p.id === id);
     if (poem && !isWritten(poem)) {
-      set((state) => ({ poems: state.poems.filter((p) => p.id !== id), revision: state.revision + 1 }));
+      set((state) => ({ poems: state.poems.filter((p) => p.id !== id), deletedIds: new Set(state.deletedIds).add(id), revision: state.revision + 1 }));
     }
   },
   addFavorite: (item) => {

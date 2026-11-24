@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchShelf, saveShelf, SignedOutError } from "@/services/shelf-service";
 import { usePoemStore } from "@/stores/poem-store";
+import { mergeShelves, serverHasNews } from "@/lib/shelf-merge";
+import { isSettingsRecord } from "@/lib/room-settings";
 import { useSessionStore } from "@/stores/session-store";
 
 export type SaveStatus = "idle" | "saving" | "saved" | "error";
@@ -39,11 +41,22 @@ export const useShelfAutosave = (token: string | null, enabled: boolean): SaveSt
     if (!enabled || !token) return;
     let timer: number | undefined;
 
+    // Folds in anything saved from another device (a phone, another tab) before saving,
+    // so an older copy of the shelf never overwrites a newer poem
+    const withServer = async () => {
+      const store = usePoemStore.getState();
+      const server = (await fetchShelf(token)).poems.filter((p) => !isSettingsRecord(p));
+      const local = store.poems;
+      const merged = mergeShelves(local, server, store.deletedIds);
+      if (serverHasNews(local, merged)) store.absorbServer(merged);
+      return usePoemStore.getState().shelfPayload();
+    };
+
     const save = () => {
       pending.current = false;
       setStatus("saving");
-      const poems = usePoemStore.getState().shelfPayload();
-      saveShelf(token, poems)
+      withServer()
+        .then((poems) => saveShelf(token, poems))
         .then(() => setStatus(pending.current ? "saving" : "saved"))
         .catch((e: unknown) => {
           setStatus("error");
@@ -67,10 +80,25 @@ export const useShelfAutosave = (token: string | null, enabled: boolean): SaveSt
     };
     window.addEventListener("pagehide", flush);
 
+    // Coming back to a tab that's been open a while: catch up with other devices first
+    const catchUp = () => {
+      if (document.visibilityState !== "visible" || pending.current) return;
+      fetchShelf(token)
+        .then(({ poems }) => {
+          const store = usePoemStore.getState();
+          if (pending.current) return;
+          const merged = mergeShelves(store.poems, poems.filter((p) => !isSettingsRecord(p)), store.deletedIds);
+          if (serverHasNews(store.poems, merged)) store.absorbServer(merged);
+        })
+        .catch(() => undefined);
+    };
+    document.addEventListener("visibilitychange", catchUp);
+
     return () => {
       unsubscribe();
       window.clearTimeout(timer);
       window.removeEventListener("pagehide", flush);
+      document.removeEventListener("visibilitychange", catchUp);
       flush();
     };
   }, [token, enabled, signOut]);
