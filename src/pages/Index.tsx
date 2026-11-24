@@ -7,6 +7,7 @@ import { usePoemStore } from "@/stores/poem-store";
 import { useSessionStore } from "@/stores/session-store";
 import { useShelfAutosave, type SaveStatus } from "@/hooks/use-shelf";
 import { PoemBook } from "@/components/poem-book";
+import { bookSizes } from "@/lib/book-size";
 import { PoemReader } from "@/components/poem-reader";
 import { GrandfatherClock } from "@/components/grandfather-clock";
 import { ShelfSearch } from "@/components/shelf-search";
@@ -51,12 +52,12 @@ const SaveIndicator = ({ status }: { status: SaveStatus }) => {
 };
 
 // One shelf of books with its plank
-const Shelf = ({ books, bookIndex, onOpen }: { books: Poem[]; bookIndex: Map<string, number>; onOpen: (id: string) => void }) => (
+const Shelf = ({ books, bookIndex, sizes, onOpen }: { books: Poem[]; bookIndex: Map<string, number>; sizes: Map<string, number>; onOpen: (id: string) => void }) => (
   <div className="relative">
     <div className="flex items-end justify-center gap-2 px-6 pb-0 pt-8 sm:gap-3 sm:px-10">
       {books.map((poem) => (
         <div key={poem.id} className="animate-fade-in">
-          <PoemBook poem={poem} index={bookIndex.get(poem.id) ?? 0} onOpen={onOpen} />
+          <PoemBook poem={poem} index={bookIndex.get(poem.id) ?? 0} size={sizes.get(poem.id)} onOpen={onOpen} />
         </div>
       ))}
     </div>
@@ -111,6 +112,8 @@ export const Index = () => {
   const tags = useMemo(() => tagCounts(written), [written]);
   // Each book keeps its own size no matter how the shelf is filtered
   const bookIndex = useMemo(() => new Map(written.map((p, i) => [p.id, i])), [written]);
+  // The longer the poem, the bigger its book, compared with the rest of the shelf
+  const sizes = useMemo(() => bookSizes(written), [written]);
   const moods = useMemo(() => moodsInUse(written), [written]);
 
   const openPoem = poems.find((p) => p.id === openId) ?? null;
@@ -250,7 +253,7 @@ export const Index = () => {
           )}
 
           {shelves.map((books, shelfIdx) => (
-            <Shelf key={`own-${shelfIdx}`} books={books} bookIndex={bookIndex} onOpen={setOpenId} />
+            <Shelf key={`own-${shelfIdx}`} books={books} bookIndex={bookIndex} sizes={sizes} onOpen={setOpenId} />
           ))}
 
           {favoriteShelves.length > 0 && (
@@ -261,7 +264,7 @@ export const Index = () => {
                 </span>
               </div>
               {favoriteShelves.map((books, shelfIdx) => (
-                <Shelf key={`fav-${shelfIdx}`} books={books} bookIndex={bookIndex} onOpen={setOpenId} />
+                <Shelf key={`fav-${shelfIdx}`} books={books} bookIndex={bookIndex} sizes={sizes} onOpen={setOpenId} />
               ))}
             </>
           )}

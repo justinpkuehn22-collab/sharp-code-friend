@@ -86,7 +86,15 @@ const TagEditor = ({ tags, onChange }: { tags: string[]; onChange: (tags: string
 };
 
 // Long poems still reveal in a few seconds; short ones keep the slow, typed feel
-const revealSpeed = (text: string, slowest: number, total: number) => Math.max(1, Math.min(slowest, Math.round(total / Math.max(1, text.length))));
+// Typed at a readable cadence: a little quicker than reading aloud, with a breath at
+// each line and a longer one between stanzas. Long poems type a bit faster so they
+// never drag; a tap shows the rest at once.
+export const bodyCadence = (text: string) => {
+  const speed = Math.max(12, Math.min(30, Math.round(5000 / Math.max(1, text.length))));
+  const f = text.length > 700 ? 0.55 : text.length > 350 ? 0.75 : 1;
+  return { speed, pauses: { line: Math.round(260 * f), stanza: Math.round(560 * f), stop: Math.round(180 * f), comma: Math.round(90 * f) } };
+};
+const titleSpeed = (text: string) => Math.max(35, Math.min(70, Math.round(1100 / Math.max(1, text.length))));
 
 export const PoemReader = ({ poem: stored, isAdmin, startEditing, prompt, onFinishedWriting, onClose, onPrevious, onNext }: PoemReaderProps) => {
   const { updatePoem, deletePoem } = usePoemStore();
@@ -164,8 +172,9 @@ export const PoemReader = ({ poem: stored, isAdmin, startEditing, prompt, onFini
   const world = isFavorite ? worldPoemForShelfId(poem.id) : null;
   const showTypewriter = !isEditing && hasContent;
 
-  const title = useTypewriter(poem.title, revealSpeed(poem.title, 60, 600), showTypewriter);
-  const body = useTypewriter(poem.content, revealSpeed(poem.content, 30, 1800), showTypewriter && title.done);
+  const title = useTypewriter(poem.title, titleSpeed(poem.title), showTypewriter);
+  const cadence = bodyCadence(poem.content);
+  const body = useTypewriter(poem.content, cadence.speed, showTypewriter && title.done, cadence.pauses);
   // World poems skip the typed reveal of the body; the two languages appear together
   useEffect(() => {
     if (world && title.done) body.skip();
