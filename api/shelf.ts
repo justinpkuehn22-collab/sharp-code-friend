@@ -3,7 +3,9 @@
 // is needed on the backend for the Vercel address.
 
 const env = (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env ?? {};
-const backend = () => `${env.SHELF_BACKEND_URL ?? env.VITE_SUPABASE_URL ?? ""}/functions/v1/shelf`;
+// The backend's public address (the same one in the repo's .env); SHELF_BACKEND_URL can override it
+const defaultBackend = "https://dxduptyrlcjubeytgkbh.supabase.co";
+const backend = () => `${env.SHELF_BACKEND_URL ?? env.VITE_SUPABASE_URL ?? defaultBackend}/functions/v1/shelf`;
 
 // Only the headers the backend needs; the browser's Origin is left out on purpose
 const forwarded = ["apikey", "authorization", "content-type", "x-shelf-session"];
