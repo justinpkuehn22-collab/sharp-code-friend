@@ -1,6 +1,8 @@
 import type { Poem, Role } from "@/data/poems";
 
-const baseUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/shelf`;
+// On Vercel the site has its own relay at /api/shelf; on Lovable it calls the backend directly
+const onVercel = typeof window !== "undefined" && (window.location.hostname.endsWith(".vercel.app") || import.meta.env.VITE_SHELF_RELAY === "1");
+const baseUrl = onVercel ? "/api/shelf" : `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/shelf`;
 const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
 
 // The publishable key only lets the request reach the function; the shelf session does the real work
