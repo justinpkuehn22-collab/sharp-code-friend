@@ -1,6 +1,9 @@
 import { useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { BookOpen, Check, Search, Shuffle, Star } from "lucide-react";
+import { WorldPoemView } from "@/components/world-poem-view";
+import { worldPoems, worldRegions, worldShelfAuthor, worldShelfText, worldShelfTitle, type WorldRegion } from "@/data/world-poems";
+import { shelfIdForWorldPoem } from "@/lib/world-shelf";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { libraryPoets, starterPicks } from "@/data/library-poets";
@@ -13,7 +16,7 @@ interface LibraryPanelProps {
   onOpenChange: (open: boolean) => void;
 }
 
-type Tab = "picks" | "poets" | "search";
+type Tab = "world" | "picks" | "poets" | "search";
 
 const tabClass = (active: boolean) =>
   cn("rounded-full px-3 py-1 text-xs transition", active ? "bg-amber-400 text-stone-900" : "text-amber-100/70 hover:text-amber-50");
@@ -24,12 +27,27 @@ const rowClass = (active: boolean) =>
 // Admin only: browse public-domain classics and favorite the ones that inspire you
 export const LibraryPanel = ({ open, onOpenChange }: LibraryPanelProps) => {
   const { poems, addFavorite, deletePoem } = usePoemStore();
-  const [tab, setTab] = useState<Tab>("picks");
+  const [tab, setTab] = useState<Tab>("world");
   const [poet, setPoet] = useState(libraryPoets[0].query);
   const [draft, setDraft] = useState("");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<{ title: string; poet: string } | null>(null);
   const [surprise, setSurprise] = useState<LibraryPoem | null>(null);
+  // Poems from around the world, shown in their own language and English
+  const [worldId, setWorldId] = useState<string | null>(null);
+  const [region, setRegion] = useState<WorldRegion | "all">("all");
+  const worldPoem = tab === "world" ? (worldPoems.find((p) => p.id === worldId) ?? null) : null;
+  const worldOnShelf = worldPoem ? poems.some((p) => p.id === shelfIdForWorldPoem(worldPoem)) : false;
+  const toggleWorld = () => {
+    if (!worldPoem) return;
+    if (worldOnShelf) {
+      deletePoem(shelfIdForWorldPoem(worldPoem));
+      toast.success(`Took "${worldPoem.title}" off your shelf.`);
+    } else {
+      addFavorite({ title: worldShelfTitle(worldPoem), author: worldShelfAuthor(worldPoem), content: worldShelfText(worldPoem) });
+      toast.success(`"${worldPoem.title}" is on your favorites shelf, in ${worldPoem.language} and English.`);
+    }
+  };
 
   const byPoet = useQuery({ queryKey: ["library-poet", poet], queryFn: () => poemsByPoet(poet), enabled: open && tab === "poets", staleTime: Infinity });
   const search = useQuery({ queryKey: ["library-search", query], queryFn: () => searchTitles(query), enabled: open && tab === "search" && query.length > 1, staleTime: Infinity });
@@ -90,6 +108,7 @@ export const LibraryPanel = ({ open, onOpenChange }: LibraryPanelProps) => {
           {/* Browse */}
           <div className="flex max-h-[30vh] min-h-0 flex-col border-amber-200/10 md:max-h-[70vh] md:border-r">
             <div className="flex flex-wrap items-center gap-1 px-4 py-3">
+              <button type="button" className={tabClass(tab === "world")} onClick={() => setTab("world")}>World</button>
               <button type="button" className={tabClass(tab === "picks")} onClick={() => setTab("picks")}>Picks</button>
               <button type="button" className={tabClass(tab === "poets")} onClick={() => setTab("poets")}>Poets</button>
               <button type="button" className={tabClass(tab === "search")} onClick={() => setTab("search")}>Search</button>
@@ -99,6 +118,33 @@ export const LibraryPanel = ({ open, onOpenChange }: LibraryPanelProps) => {
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-4">
+              {tab === "world" && (
+                <>
+                  <div className="mb-2 flex flex-wrap gap-1 px-1">
+                    {(["all", ...worldRegions] as const).map((r) => (
+                      <button key={r} type="button" onClick={() => setRegion(r)} className={cn("rounded-full border px-2 py-0.5 text-[11px] transition", region === r ? "border-amber-400 bg-amber-400/15 text-amber-50" : "border-amber-100/15 text-amber-100/60 hover:text-amber-50")}>
+                        {r === "all" ? "Everywhere" : r}
+                      </button>
+                    ))}
+                  </div>
+                  <ul>
+                    {worldPoems
+                      .filter((p) => region === "all" || p.region === region)
+                      .map((p) => (
+                        <li key={p.id}>
+                          <button type="button" onClick={() => setWorldId(p.id)} className={rowClass(worldId === p.id)}>
+                            <span className="flex items-baseline justify-between gap-2">
+                              <span>{p.title}</span>
+                              <span lang={p.lang} className="shrink-0 text-xs text-amber-100/45">{p.originalTitle.length <= 14 ? p.originalTitle : ""}</span>
+                            </span>
+                            <span className="block text-[11px] text-amber-100/45">{p.poet} · {p.language} · {p.dates}</span>
+                          </button>
+                        </li>
+                      ))}
+                  </ul>
+                </>
+              )}
+
               {tab === "picks" && (
                 <ul>
                   {starterPicks.map((p) => (
@@ -172,7 +218,32 @@ export const LibraryPanel = ({ open, onOpenChange }: LibraryPanelProps) => {
 
           {/* Read */}
           <div className="min-h-0 max-h-[55vh] overflow-y-auto px-6 py-6 md:max-h-[70vh]">
-            {!selected && !surprise ? (
+            {tab === "world" ? (
+              worldPoem ? (
+                <div>
+                  <div className="mb-2 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={toggleWorld}
+                      aria-pressed={worldOnShelf}
+                      className={cn(
+                        "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition",
+                        worldOnShelf ? "border border-amber-300/50 text-amber-100" : "brass-plate text-stone-900",
+                      )}
+                    >
+                      {worldOnShelf ? <Check size={13} aria-hidden="true" /> : <Star size={13} aria-hidden="true" />}
+                      {worldOnShelf ? "On your shelf" : "Add to favorites"}
+                    </button>
+                  </div>
+                  <WorldPoemView key={worldPoem.id} poem={worldPoem} />
+                </div>
+              ) : (
+                <div className="pt-10 text-center">
+                  <p className="font-display text-lg italic text-amber-100/40">{worldPoems.length} poems in {new Set(worldPoems.map((p) => p.language)).size} languages.</p>
+                  <p className="mt-1 text-sm text-amber-100/35">Pick one to read it in its own language and in English.</p>
+                </div>
+              )
+            ) : !selected && !surprise ? (
               <p className="pt-10 text-center font-display text-lg italic text-amber-100/40">Pick a poem to read it here.</p>
             ) : poem.isLoading && !surprise ? (
               <p className="text-sm text-amber-100/50">Opening the book…</p>

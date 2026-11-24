@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Award, BookOpen, Lightbulb, RotateCw, Shuffle } from "lucide-react";
 import { findRhymes } from "@/services/rhyme-service";
 import type { LineNote } from "@/lib/critique-coach";
+import { SaveMasterButton } from "@/components/save-master-button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Progress } from "@/components/ui/progress";
 import { critiquePoem, sameText, type Critique } from "@/lib/poem-critique";
@@ -220,9 +221,12 @@ export const CritiquePanel = ({ poem, open, onOpenChange }: CritiquePanelProps) 
                             <BookOpen size={11} aria-hidden="true" /> Learn from the masters
                           </figcaption>
                           <blockquote className="whitespace-pre-line font-body text-sm italic leading-relaxed text-amber-50/90">{t.master.lines}</blockquote>
-                          <p className="mt-1 text-[11px] text-amber-100/55">
-                            {t.master.poet}, <span className="italic">{t.master.poem}</span> ({t.master.year})
-                          </p>
+                          <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
+                            <p className="text-[11px] text-amber-100/55">
+                              {t.master.poet}, <span className="italic">{t.master.poem}</span> ({t.master.year})
+                            </p>
+                            <SaveMasterButton master={t.master} />
+                          </div>
                           <p className="mt-2 text-xs leading-relaxed text-amber-100/75">{t.master.lesson}</p>
                           <p className="mt-2 text-xs leading-relaxed text-amber-100/90">
                             <span className="font-semibold text-amber-300">Try it: </span>

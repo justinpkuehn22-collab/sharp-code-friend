@@ -1,6 +1,7 @@
 import { memo } from "react";
 import { cn } from "@/lib/utils";
 import { moodLabels, type Poem } from "@/data/poems";
+import { spineName, worldPoemForShelfId } from "@/lib/world-shelf";
 
 interface PoemBookProps {
   poem: Poem;
@@ -25,6 +26,12 @@ const leathers = [
   "bg-[linear-gradient(90deg,hsl(25_40%_14%),hsl(28_42%_22%)_45%,hsl(25_40%_13%))]",
   "bg-[linear-gradient(90deg,hsl(20_8%_7%),hsl(20_8%_14%)_45%,hsl(20_8%_6%))]",
 ];
+// Lacquered bindings for poems from around the world: deep teal, indigo and cinnabar
+const lacquers = [
+  "bg-[linear-gradient(90deg,hsl(175_40%_13%),hsl(175_42%_21%)_45%,hsl(175_40%_12%))]",
+  "bg-[linear-gradient(90deg,hsl(235_35%_16%),hsl(235_38%_26%)_45%,hsl(235_35%_15%))]",
+  "bg-[linear-gradient(90deg,hsl(8_55%_22%),hsl(8_58%_32%)_45%,hsl(8_55%_20%))]",
+];
 // Cloth bindings for favorites from the library: parchment, slate and faded rose
 const cloths = [
   "bg-[linear-gradient(90deg,hsl(40_30%_62%),hsl(42_34%_74%)_45%,hsl(40_30%_60%))]",
@@ -44,11 +51,14 @@ const PoemBookSpine = ({ poem, index, onOpen }: PoemBookProps) => {
   const height = heights[Math.floor(seededRandom(index + 1) * heights.length)];
   const width = widths[Math.floor(seededRandom(index + 50) * widths.length)];
   const isFavorite = poem.kind === "favorite";
-  const binding = isFavorite
-    ? cloths[Math.floor(seededRandom(index + 90) * cloths.length)]
-    : leathers[Math.floor(seededRandom(index + 90) * leathers.length)];
+  const world = isFavorite ? worldPoemForShelfId(poem.id) : null;
+  const pick = (list: string[]) => list[Math.floor(seededRandom(index + 90) * list.length)];
+  const binding = world ? pick(lacquers) : isFavorite ? pick(cloths) : pick(leathers);
   const lightCloth = isFavorite && binding === cloths[0];
   const title = poem.title.trim() || "Untitled";
+  // Chinese, Japanese and Korean titles read top to bottom on the spine, as they would in print
+  const verticalScript = world && /^(zh|ja|ko)/.test(world.lang);
+  const spineTitle = verticalScript ? world.originalTitle : title;
 
   return (
     <button
@@ -76,13 +86,14 @@ const PoemBookSpine = ({ poem, index, onOpen }: PoemBookProps) => {
 
       <span
         className={cn(
-          "absolute left-1/2 top-1/2 max-h-[85%] -translate-x-1/2 -translate-y-1/2 rotate-180 overflow-hidden text-ellipsis whitespace-nowrap",
+          "absolute left-1/2 top-1/2 max-h-[85%] -translate-x-1/2 -translate-y-1/2 overflow-hidden text-ellipsis whitespace-nowrap",
+          verticalScript ? "[text-orientation:upright]" : "rotate-180",
           "font-display text-[9px] font-bold drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)] [writing-mode:vertical-rl] sm:text-[11px]",
           lightCloth ? "text-stone-900 drop-shadow-none" : "text-white/90",
           "transition-all duration-500 group-hover:tracking-wider group-hover:text-white group-hover:drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]",
         )}
       >
-        {title}
+        <span lang={verticalScript ? world.lang : undefined}>{spineTitle}</span>
       </span>
 
       {isFavorite && (
@@ -92,7 +103,7 @@ const PoemBookSpine = ({ poem, index, onOpen }: PoemBookProps) => {
             lightCloth ? "text-stone-800/80" : "text-amber-100/70",
           )}
         >
-          {surname(poem.author).slice(0, 7)}
+          {(world ? spineName(world) : surname(poem.author)).slice(0, 8)}
         </span>
       )}
 

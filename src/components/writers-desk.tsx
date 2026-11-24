@@ -2,6 +2,7 @@ import { useDeferredValue, useMemo, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { BookOpen, Search, Shuffle } from "lucide-react";
 import { critiquePoem, elementLabels } from "@/lib/poem-critique";
+import { SaveMasterButton } from "@/components/save-master-button";
 import { findRhymes } from "@/services/rhyme-service";
 import { analyzeRhymes, lastWord, rhymeKindCounts, rhymeSchemeText } from "@/lib/rhyme";
 import { rhymeKindLabels } from "@/lib/rhyme-sounds";
@@ -170,9 +171,12 @@ export const WritersDesk = ({ content: live, onInsertWord }: WritersDeskProps) =
           </div>
           <p className="mb-1.5 text-[11px] text-amber-100/50">Your draft could use more: {elementLabels[lesson.element].toLowerCase()}</p>
           <blockquote className="whitespace-pre-line border-l-2 border-amber-400/40 pl-2 font-body text-sm italic leading-relaxed text-amber-50/90">{lesson.master.lines}</blockquote>
-          <p className="mt-1 text-[10px] text-amber-100/45">
-            {lesson.master.poet}, <span className="italic">{lesson.master.poem}</span> ({lesson.master.year})
-          </p>
+          <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-[10px] text-amber-100/45">
+              {lesson.master.poet}, <span className="italic">{lesson.master.poem}</span> ({lesson.master.year})
+            </p>
+            <SaveMasterButton master={lesson.master} />
+          </div>
           <p className="mt-2 text-xs leading-relaxed text-amber-100/70">{lesson.master.lesson}</p>
           <p className="mt-1.5 text-xs leading-relaxed text-amber-100/90">
             <span className="font-semibold text-amber-300">Try it: </span>
